@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SlimEdge\Route;
 
+use Slim\App;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionAttribute;
 use SlimEdge\Support\Paths;
 use SlimEdge\Route\Attributes\Route;
 use Psr\Http\Server\MiddlewareInterface;
-use Slim\App;
 
 class AttributeReader
 {

@@ -94,6 +94,10 @@ if(! function_exists('get_base_path')) {
             $index = 0;
             $scriptName = $_SERVER['SCRIPT_NAME'];
             $requestUri = $_SERVER['REQUEST_URI'];
+            while(strpos($requestUri, '//') !== false) {
+                $requestUri = str_replace('//', '/', $requestUri);
+            }
+
             for ($i = 0; $i < min(strlen($scriptName), strlen($requestUri)); $i++) {
                 if($requestUri[$i] == $scriptName[$i]) {
                     if($requestUri[$i] == '/')

@@ -6,4 +6,4 @@ define('ENVIRONMENT', 'development');
 
 require_once '../boot.php';
 
-SlimEdge\Kernel::getApp()->run();
+SlimEdge\Kernel::boot()->getApp()->run();

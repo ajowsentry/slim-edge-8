@@ -4,3 +4,6 @@ parameters:
         - system
     bootstrapFiles:
         - boot.php
+    dynamicConstantNames:
+        - ENVIRONMENT
+    checkGenericClassInNonGenericObjectType: false

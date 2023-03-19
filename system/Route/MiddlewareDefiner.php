@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace SlimEdge\Route;
 
-use Slim\App;
-use Slim\Interfaces\RouteCollectorProxyInterface;
 use Slim\Interfaces\RouteGroupInterface;
+use Slim\Interfaces\RouteCollectorProxyInterface;
 
 final class MiddlewareDefiner implements RouteDefinerInterface
 {

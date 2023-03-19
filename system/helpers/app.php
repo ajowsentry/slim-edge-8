@@ -10,9 +10,8 @@ use Psr\Http\Message\ServerRequestInterface;
 if(! function_exists('container')) {
 
     /**
-     * @template T
-     * @param string|class-string<T> $key
-     * @return mixed|T
+     * @param string $key
+     * @return mixed
      */
     function container(string $key): mixed
     {

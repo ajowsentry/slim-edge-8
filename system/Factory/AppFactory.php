@@ -49,21 +49,23 @@ final class AppFactory
     {
         $this->app->addRoutingMiddleware();
 
-        if($this->config['routeCaching'] ?? false) {
+        $config = $this->app->getContainer()->get('config.routing');
+
+        if($config['caching'] ?? false) {
             $routerCacheFile = Paths::Cache . '/routeDispatcher.php';
             $this->app->getRouteCollector()->setCacheFile($routerCacheFile);
         }
 
-        foreach($this->config['routes'] ?? [] as $route)
+        foreach($config['routes'] ?? [] as $route)
             load_route($this->app, $route);
 
-        $routeBasePath = $this->config['routeBasePath'] ?? get_base_path();
+        $routeBasePath = $config['basePath'] ?? get_base_path();
         if(!is_null($routeBasePath))
             $this->app->setBasePath($routeBasePath);
 
-        $attributeRouting = $this->config['attributeRouting'] ?? true;
+        $attributeRouting = $config['attributeDiscovery'] ?? true;
         if($attributeRouting) {
-            $attributeRoutingFolder = (array) ($this->config['attributeRoutingFolder'] ?? 'Controllers');
+            $attributeRoutingFolder = (array) ($config['attributeDiscoveryFolder'] ?? 'Controllers');
             Route\AttributeReader::register($this->app, $attributeRoutingFolder);
         }
 
@@ -77,7 +79,7 @@ final class AppFactory
      */
     public function registerMiddlewares(): static
     {
-        $middlewares = $this->config['middleware'] ?? [];
+        $middlewares = $this->config['middlewares'] ?? [];
         foreach($middlewares as $middleware) {
             $this->app->add($middleware);
         }
