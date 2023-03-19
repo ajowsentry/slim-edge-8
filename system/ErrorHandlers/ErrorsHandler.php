@@ -6,15 +6,16 @@ namespace SlimEdge\ErrorHandlers;
 
 use Slim\App;
 use Psr\Http\Message\ResponseInterface;
+use Slim\Interfaces\RouteCollectorProxyInterface;
 
 final class ErrorsHandler
 {
     /**
-     * @param App $app
+     * @param RouteCollectorProxyInterface $app
      * @param string $basePath
      * @return void
      */
-    public static function register(App $app, string $basePath = '/err'): void
+    public static function register(RouteCollectorProxyInterface $app, string $basePath = '/err'): void
     {
         $app->get($basePath . '/400', [self::class, 'error400']);
         $app->get($basePath . '/401', [self::class, 'error401']);

@@ -26,7 +26,8 @@
         "phpfastcache/phpfastcache": "^9.1",
         "hashids/hashids": "^5.0",
         "robinvdvleuten/ulid": "^5.0",
-        "ajowsentry/sqltark": "^0.9.4"
+        "ajowsentry/sqltark": "^0.9.4",
+        "firebase/php-jwt": "^6.4"
     },
     "autoload": {
         "psr-4": {

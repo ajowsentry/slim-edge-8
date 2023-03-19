@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use DI\Factory\RequestedEntry;
 use SqlTark\XQuery;
+use DI\Factory\RequestedEntry;
 use SqlTark\Manager\DbManager;
 
 $dependencies = [

@@ -3,3 +3,4 @@
 phpstan.log
 composer.lock
 rnd*.php
+rnd-*

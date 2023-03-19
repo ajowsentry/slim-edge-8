@@ -176,15 +176,3 @@ if(! function_exists('remove_invisible_characters'))
         return preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $string);
     }
 }
-
-if(! function_exists('ulid'))
-{
-    /**
-     * @param bool $lowercase
-     * @return string
-     */
-    function ulid(bool $lowercase = false): string
-    {
-        return (string) Ulid\Ulid::generate($lowercase);
-    }
-}

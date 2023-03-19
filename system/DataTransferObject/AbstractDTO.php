@@ -371,7 +371,7 @@ abstract class AbstractDTO implements JsonSerializable
     }
 
     /**
-     * @return mixed
+     * @return array<string,mixed>
      */
     public function jsonSerialize(): array
     {

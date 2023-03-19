@@ -15,44 +15,43 @@ class Config
      * Is cors enabled
      * @var bool $enabled
      */
-    public $enabled = true;
+    public bool $enabled = true;
 
     /**
      * Which arigins are allowed
-     * @var string[] $allowOrigins
+     * @var list<string> $allowOrigins
      */
-    public $allowOrigins = [ ];
+    public array $allowOrigins = [ ];
 
     /**
      * Which headers are allowed
-     * @var string[] $allowHeaders
+     * @var list<string> $allowHeaders
      */
-    public $allowHeaders = [ ];
+    public array $allowHeaders = [ ];
 
     /**
      * Which credentials are allowed
-     * @var string[] $allowCredentials
+     * @var list<string> $allowCredentials
      */
-    public $allowCredentials = [ ];
+    public array $allowCredentials = [ ];
 
     /**
      * Which headers are allowed
-     * @var string[] $exposeHeaders
+     * @var list<string> $exposeHeaders
      */
-    public $exposeHeaders = [ ];
+    public array $exposeHeaders = [ ];
 
     /**
-     * 
      * @var ?int $maxAge
      */
-    public $maxAge = null;
+    public ?int $maxAge = null;
 
     /**
      * Routes specific configuration.
      * Configuration is cascading and not nested
      * @var ?array<string,Config> $routes
      */
-    public $routes = null;
+    public ?array $routes = null;
 
     /**
      * @param ?array<string,mixed> $config

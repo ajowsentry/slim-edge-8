@@ -17,16 +17,21 @@ class TypeOf
 
     /**
      * @readonly
-     * @var string $isNullable
+     * @var bool $isNullable
      */
     public readonly bool $isNullable;
 
     /**
      * @readonly
-     * @var string $isCollection
+     * @var bool $isCollection
      */
     public readonly bool $isCollection;
 
+    /**
+     * @param string $type
+     * @param bool $isNullable
+     * @param bool $isCollection
+     */
     public function __construct(string $type, bool $isNullable = false, bool $isCollection = false)
     {
         $this->type = $type;
