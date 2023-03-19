@@ -28,20 +28,20 @@ class Analyzer
     private const AllowHeadersHeader = 'Access-Control-Allow-Headers';
 
     /** @var ServerRequestInterface $request */
-    private $request;
+    private ServerRequestInterface $request;
 
     /** @var Config $config */
-    private $config;
+    private Config $config;
 
     /**
      * @var ?bool $hasCredentials
      */
-    private $hasCredentials = null;
+    private ?bool $hasCredentials = null;
 
     /**
      * @var ?string[] $headers
      */
-    private $headers = null;
+    private ?array $headers = null;
 
     /**
      * @var array<string,string> $analyzerResult

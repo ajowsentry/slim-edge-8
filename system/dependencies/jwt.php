@@ -28,4 +28,12 @@ return [
     JWT\Encoder::class => DI\factory(function(JWT\Config $config) {
         return new JWT\Encoder($config);
     }),
+
+    JWT\FetchCredential::class => DI\factory(function(JWT\Config $config) {
+        return new JWT\FetchCredential($config);
+    }),
+
+    JWT\RequireCredential::class => DI\factory(function(JWT\Config $config) {
+        return new JWT\RequireCredential($config);
+    }),
 ];
