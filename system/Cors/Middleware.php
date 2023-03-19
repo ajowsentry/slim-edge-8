@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace SlimEdge\Cors;
 
-use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 class Middleware implements MiddlewareInterface
@@ -15,31 +14,14 @@ class Middleware implements MiddlewareInterface
     /**
      * @var Config $config
      */
-    private $config;
+    private Config $config;
 
-    public function __construct(ContainerInterface $container)
+    /**
+     * @param array<string,mixed>|Config $config
+     */
+    public function __construct(array|Config $config)
     {
-        $this->initConfig($container);
-    }
-
-    private function initConfig(ContainerInterface $container): void
-    {
-        $cached = get_cache(Config::class, null, 'config');
-        if(!is_null($cached)) {
-            $this->config = $cached;
-            return;
-        }
-
-        if($container->has('config.cors')) {
-            /** @var array<string,mixed> $config */
-            $config = $container->get('config.cors');
-            $this->config = new Config($config);
-            set_cache(Config::class, $this->config, 'config');
-        }
-        else {
-            $this->config = new Config();
-        }
-        
+        $this->config = $config instanceof Config ? $config : new Config($config);
     }
 
     public function process(

@@ -19,6 +19,9 @@ class RequireCredential implements MiddlewareInterface
 
     protected Config $config;
 
+    /**
+     * @param array<string,mixed>|Config $config
+     */
     public function __construct(array|Config $config)
     {
         $this->decoder = new Decoder($config);
