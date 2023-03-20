@@ -25,7 +25,7 @@ if(! function_exists('is_cli')) {
     }
 }
 
-if(! function_exists('get_real_ip_address')) {
+if(! function_exists('get_ip_address')) {
 
     /**
      * @return string

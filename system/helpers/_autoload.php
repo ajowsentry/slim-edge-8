@@ -7,6 +7,7 @@ require_once 'date.php';
 require_once 'hashids.php';
 require_once 'message.php';
 require_once 'mime.php';
+require_once 'number.php';
 require_once 'request.php';
 require_once 'string.php';
 require_once 'system.php';

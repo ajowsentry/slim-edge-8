@@ -35,5 +35,8 @@
             "App\\": "app/"
         },
         "files": ["system/helpers/_autoload.php"]
+    },
+    "scripts": {
+        "post-update-cmd": "@php cli clear:cache -fs"
     }
 }

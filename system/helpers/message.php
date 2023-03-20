@@ -29,6 +29,7 @@ if(! function_exists('create_stream')) {
     /**
      * @param string|resource|StreamInterface $filename
      * @param string $mode
+     * @throws InvalidArgumentException
      */
     function create_stream($filename, $mode = 'r+'): StreamInterface
     {

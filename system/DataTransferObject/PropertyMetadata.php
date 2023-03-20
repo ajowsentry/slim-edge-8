@@ -56,7 +56,7 @@ final class PropertyMetadata
     /**
      * @var ?string $defaultCallback
      */
-    public ?string $defaultCallback;
+    public ?string $defaultCallback = null;
 
     public function __construct(string $property)
     {

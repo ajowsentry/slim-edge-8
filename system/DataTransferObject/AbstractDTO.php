@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SlimEdge\DataTransferObject;
 
+use Error;
 use JsonSerializable;
 use Respect\Validation\Rules;
 use Slim\Routing\RouteContext;
@@ -28,6 +29,11 @@ abstract class AbstractDTO implements JsonSerializable
      * @var array<string,mixed> $raw
      */
     private array $raw = [];
+    
+    /**
+     * @var array<string,string> $nameReferenceMap
+     */
+    private array $nameReferenceMap = [];
 
     /**
      * @var bool|null|Validatable $validator
@@ -59,6 +65,7 @@ abstract class AbstractDTO implements JsonSerializable
     public static function fromRequest(ServerRequestInterface $request): static
     {
         $params = [];
+        $nameReferenceMap = [];
         foreach(static::getMetadata() as $property => $metadata) {
 
             foreach($metadata->fetchFrom as $fetch) {
@@ -69,22 +76,28 @@ abstract class AbstractDTO implements JsonSerializable
                     if(!isset($queryParams))
                         $queryParams = $request->getQueryParams();
 
-                    if(array_key_exists($key = $fetch->name ?? $property, $queryParams))
+                    if(array_key_exists($key = $fetch->name ?? $property, $queryParams)) {
+                        $nameReferenceMap[$property] = $key;
                         $params[$property] = $queryParams[$key];
+                    }
                 }
                 elseif($fetch->type === FetchType::Body) {
                     if(!isset($bodyParams))
                         $bodyParams = $request->getParsedBody();
 
-                    if(array_key_exists($key = $fetch->name ?? $property, $bodyParams))
+                    if(array_key_exists($key = $fetch->name ?? $property, $bodyParams)) {
+                        $nameReferenceMap[$property] = $key;
                         $params[$property] = $bodyParams[$key];
+                    }
                 }
                 elseif($fetch->type === FetchType::File) {
                     if(!isset($fileParams))
                         $fileParams = $request->getUploadedFiles();
 
-                    if(array_key_exists($key = $fetch->name ?? $property, $fileParams))
+                    if(array_key_exists($key = $fetch->name ?? $property, $fileParams)) {
+                        $nameReferenceMap[$property] = $key;
                         $params[$property] = $fileParams[$key];
+                    }
                 }
                 elseif($fetch->type === FetchType::Args) {
                     if(!isset($argsParams))
@@ -92,17 +105,23 @@ abstract class AbstractDTO implements JsonSerializable
                             ->getRoutingResults()
                             ->getRouteArguments();
 
-                    if(array_key_exists($key = $fetch->name ?? $property, $argsParams))
+                    if(array_key_exists($key = $fetch->name ?? $property, $argsParams)) {
+                        $nameReferenceMap[$property] = $key;
                         $params[$property] = $argsParams[$key];
+                    }
                 }
                 elseif($fetch->type === FetchType::Header) {
-                    if($request->hasHeader($key = $fetch->name ?? $property))
+                    if($request->hasHeader($key = $fetch->name ?? $property)) {
+                        $nameReferenceMap[$property] = $key;
                         $params[$property] = $request->getHeaderLine($key);
+                    }
                 }
             }
         }
 
-        return new static($params);
+        $result = new static($params);
+        $result->nameReferenceMap = $nameReferenceMap;
+        return $result;
     }
 
     /**
@@ -252,18 +271,23 @@ abstract class AbstractDTO implements JsonSerializable
     {
         $result = [];
         foreach($this->getProperties() as $property) {
-            $raw = $this->$property;
-            if($raw instanceof AbstractDTO) {
-                $resolved = $raw->toArray();
-            }
-            elseif(is_array($raw)) {
-                $resolved = array_map(fn($value) => $value instanceof AbstractDTO ? $value->toArray() : $value, $raw);
-            }
-            else {
-                $resolved = $raw;
-            }
+            try {
+                $raw = $this->$property;
+                if($raw instanceof AbstractDTO) {
+                    $resolved = $raw->toArray();
+                }
+                elseif(is_array($raw)) {
+                    $resolved = array_map(fn($value) => $value instanceof AbstractDTO ? $value->toArray() : $value, $raw);
+                }
+                else {
+                    $resolved = $raw;
+                }
 
-            $result[$property] = $resolved;
+                $result[$property] = $resolved;
+            }
+            catch(Error) {
+                /** @ignore */
+            }
         }
 
         return $result;
@@ -272,7 +296,7 @@ abstract class AbstractDTO implements JsonSerializable
     /**
      * @return ?Validatable
      */
-    protected function getValidator()
+    public function getValidator()
     {
         if(false === $this->validator)
             return null;
@@ -287,8 +311,8 @@ abstract class AbstractDTO implements JsonSerializable
             if(false !== ($validator = ValidatorRegistry::get($metadata->type)))
                 array_push($fieldRules, $validator);
 
-            if(!is_null($callback = $metadata->validator)) {
-                $validators = $callback();
+            if(!is_null($method = $metadata->validator)) {
+                $validators = call_user_func([$this, $method]);
                 if($validators instanceof Validatable) {
                     if($validators instanceof AbstractComposite) {
                         array_push($fieldRules, ...$validators->getRules());
@@ -309,8 +333,13 @@ abstract class AbstractDTO implements JsonSerializable
 
                 if($metadata->isNullable)
                     $rule = new Rules\Nullable($rule);
+                
+                $rule = new Rules\Key($key, $rule);
 
-                $rules->addRule(new Rules\Key($key, $rule));
+                if(isset($this->nameReferenceMap[$key]))
+                    $rule->setName($this->nameReferenceMap[$key]);
+
+                $rules->addRule($rule);
             }
         }
 

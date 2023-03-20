@@ -110,16 +110,14 @@ class AttributeReader
 
             $middlewares = $this->getMiddlewares($class);
 
-            $groupRoutes = [];
-            $groupAttributes = $class->getAttributes(Route\Group::class);
-            foreach($groupAttributes as $groupAttribute) {
-                $group = $groupAttribute->newInstance();
-                array_push($groupRoutes, new RouteGroupDefiner(
-                    $group->pattern,
+            $groupRoutes = array_map(
+                fn($groupAttribute) => new RouteGroupDefiner(
+                    $groupAttribute->newInstance()->pattern,
                     $middlewares,
                     $methodRoutes,
-                ));
-            }
+                ),
+                $class->getAttributes(Route\Group::class)
+            );
 
             if(count($groupRoutes) > 0) {
                 $resolvedRoutes = $groupRoutes;

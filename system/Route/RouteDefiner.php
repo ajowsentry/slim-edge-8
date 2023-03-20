@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SlimEdge\Route;
 
+use Slim\Interfaces\RouteInterface;
 use Slim\Interfaces\RouteGroupInterface;
 use Slim\Interfaces\RouteCollectorProxyInterface;
 
@@ -65,7 +66,7 @@ final class RouteDefiner implements RouteDefinerInterface
     }
 
     /** {@inheritdoc} */
-    public function register(RouteCollectorProxyInterface|RouteGroupInterface $routeCollector): void
+    public function register(RouteCollectorProxyInterface|RouteGroupInterface|RouteInterface $routeCollector): void
     {
         $route = $routeCollector->map(
             $this->methods,
@@ -82,7 +83,7 @@ final class RouteDefiner implements RouteDefinerInterface
         }
 
         foreach($this->middlewares as $middlewareDefiner) {
-            $middlewareDefiner->register($routeCollector);
+            $middlewareDefiner->register($route);
         }
     }
 }

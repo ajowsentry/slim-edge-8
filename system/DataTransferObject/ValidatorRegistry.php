@@ -12,7 +12,7 @@ use Respect\Validation\Validatable;
 final class ValidatorRegistry
 {
     /**
-     * @var array<string,Validatable|string> $registry
+     * @var array<string,Validatable|string|false> $registry
      */
     private static array $registry = [
         'bool'    => Rules\BoolType::class,
@@ -35,7 +35,16 @@ final class ValidatorRegistry
      */
     public static function set(string $type, $validator): void
     {
-        static::$registry[$type] = $validator;
+        self::$registry[$type] = $validator;
+    }
+
+    /**
+     * @param string $type
+     * @return bool
+     */
+    public static function has(string $type): bool
+    {
+        return array_key_exists($type, self::$registry);
     }
 
     /**
@@ -44,7 +53,7 @@ final class ValidatorRegistry
      */
     public static function get(string $type): false|Validatable
     {
-        if(!isset(self::$registry[$type]))
+        if(!isset(self::$registry[$type]) || false === self::$registry[$type])
             return false;
 
         $validator = self::$registry[$type];
