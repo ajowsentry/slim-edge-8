@@ -8,7 +8,7 @@ use Attribute;
 use InvalidArgumentException;
 use Psr\Http\Server\MiddlewareInterface;
 
-#[Attribute(flags: Attribute::TARGET_CLASS)]
+#[Attribute(flags: Attribute::TARGET_CLASS|Attribute::TARGET_METHOD|Attribute::IS_REPEATABLE)]
 class Middleware
 {
     /**

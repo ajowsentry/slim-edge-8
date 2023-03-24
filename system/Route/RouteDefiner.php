@@ -26,9 +26,9 @@ final class RouteDefiner implements RouteDefinerInterface
     public readonly ?string $name;
 
     /**
-     * @var string[] $callable
+     * @var string|string[] $callable
      */
-    public readonly array $callable;
+    public readonly string|array $callable;
 
     /**
      * @var ?array<string,string> $arguments
@@ -44,7 +44,7 @@ final class RouteDefiner implements RouteDefinerInterface
      * @param array<string> $methods
      * @param string $pattern
      * @param ?string $name
-     * @param array<string> $callable
+     * @param string|array<string> $callable
      * @param ?array<string,string> $arguments
      * @param MiddlewareDefiner[] $middlewares
      */
@@ -52,7 +52,7 @@ final class RouteDefiner implements RouteDefinerInterface
         array $methods,
         string $pattern,
         ?string $name,
-        array $callable,
+        string|array $callable,
         ?array $arguments,
         array $middlewares,
     )

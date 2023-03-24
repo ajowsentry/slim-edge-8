@@ -94,6 +94,29 @@ if(! function_exists('load_route')) {
     }
 }
 
+if(! function_exists('load_dependency')) {
+
+    /**
+     * @param string $name Route name
+     * @param string $basePath Base path
+     * @return array<string,mixed>
+     */
+    function load_dependency(string $name, string $basePath = Paths::Dependencies): array
+    {
+        $load = function(string $script): array {
+            $result = require $script;
+            assert(is_array($result), "Dependency file '{$script}' must return array");
+            return $result;
+        };
+
+        return array_reduce(
+            env_aware_file($basePath . '/' . $name),
+            fn(array $acc, string $item): array => array_merge($acc, $load($item)),
+            []
+        );
+    }
+}
+
 if(! function_exists('typeof')) {
 
     /**
@@ -120,14 +143,15 @@ if(! function_exists('rglob')) {
         if(!is_null($filter))
             $files = array_filter($files, $filter);
 
-        foreach (glob(dirname($pattern).'/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
-            $_files = rglob($dir.'/'.basename($pattern), $flags, $filter);
+        foreach (glob(dirname($pattern) . '/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
+            $_files = rglob($dir . '/' . basename($pattern), $flags, $filter);
 
             if(!is_null($filter))
                 $_files = array_filter($_files, $filter);
 
             $files = array_merge($files, $_files);
         }
+
         return $files;
     }
 }

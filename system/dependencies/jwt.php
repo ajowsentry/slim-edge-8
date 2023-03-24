@@ -8,17 +8,20 @@ use Psr\Container\ContainerInterface;
 return [
 
     JWT\Config::class => DI\factory(function(ContainerInterface $container) {
-        $config = get_cache(JWT\Config::class, null, 'config');
-        if(is_null($config)) {
-            if($container->has('config.jwt')) {
-                $config = $container->get('config.jwt');
-                $result = new JWT\Config($config);
-                set_cache(JWT\Config::class, $result, 'config');
-                return $result;
-            }
-            return new JWT\Config([]);
+
+        $cached = get_cache(JWT\Config::class, null, 'config');
+
+        if(!is_null($cached)) {
+            return $cached;
         }
-        return $config;
+
+        if($container->has('config.jwt')) {
+            $config = new JWT\Config($container->get('config.jwt'));
+            set_cache(JWT\Config::class, $config, 'config');
+            return $config;
+        }
+
+        return new JWT\Config();
     }),
 
     JWT\Decoder::class => DI\factory(function(JWT\Config $config) {

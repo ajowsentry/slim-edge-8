@@ -6,7 +6,7 @@ namespace SlimEdge\Route\Attributes\Route;
 
 use Attribute;
 
-#[Attribute(flags: Attribute::TARGET_CLASS)]
+#[Attribute(flags: Attribute::TARGET_CLASS|Attribute::IS_REPEATABLE)]
 class Group
 {
     /** @var ?string */

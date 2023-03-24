@@ -20,7 +20,7 @@ return [
             return $config;
         }
 
-        return new HttpLog\Config([]);
+        return new HttpLog\Config();
     }),
 
     HttpLog\Middleware::class => DI\factory(function(HttpLog\Config $config) {

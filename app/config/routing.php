@@ -6,7 +6,7 @@ return [
     'caching' => false,
     'basePath' => null,
     'attributeDiscovery' => true,
-    'attributeDiscoveryFolder' => 'Controller',
+    'attributeDiscoveryFolder' => 'Controllers',
     'routes' => [
         'main',
         'errors',

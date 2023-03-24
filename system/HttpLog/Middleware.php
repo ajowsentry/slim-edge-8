@@ -6,8 +6,6 @@ namespace SlimEdge\HttpLog;
 
 use Exception;
 use Slim\Routing\RouteContext;
-use SlimEdge\Entity\Collection;
-use Psr\Container\ContainerInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -17,21 +15,21 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class Middleware implements MiddlewareInterface
 {
-    public const ContextNone = 0;
+    protected const ContextNone = 0;
 
-    public const ContextQuery = 1;
+    protected const ContextQuery = 1;
 
-    public const ContextFormData = 2;
+    protected const ContextFormData = 2;
 
-    public const ContextBody = 4;
+    protected const ContextBody = 4;
 
-    public const ContextUploadedFiles = 8;
+    protected const ContextUploadedFiles = 8;
 
-    public const BodyContent = 0;
+    protected const BodyContent = 0;
 
-    public const BodyIgnored = 1;
+    protected const BodyIgnored = 1;
 
-    public const BodyToFile = 2;
+    protected const BodyToFile = 2;
 
     /**
      * @var ?string $requestHash
@@ -119,12 +117,9 @@ class Middleware implements MiddlewareInterface
         $uploadedFiles = null;
 
         if($streamAnalyzer->isBinary || ($config->maxBody && $streamAnalyzer->size > $config->maxBody)) {
-            if($config->ignoreOnMax) {
-                $bodyContext = self::BodyIgnored;
-            }
-            else {
-                $bodyContext = self::BodyToFile;
-            }
+            $bodyContext = $config->ignoreOnMax
+                ? self::BodyIgnored
+                : self::BodyToFile;
         }
 
         if($config->logQuery) {
@@ -345,13 +340,13 @@ class Middleware implements MiddlewareInterface
      */
     private function uuidFormat(string $value): string
     {
-        // 6-4-4-4-8 => xxxxxx-xxxx-xxxx-xxxx-xxxxxxxx
+        // 8-4-4-4-12 => xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
         return sprintf("%s-%s-%s-%s-%s",
-            substr($value, 0, 6),
-            substr($value, 6, 4),
-            substr($value, 10, 4),
-            substr($value, 14, 4),
-            substr($value, 18, 8),
+            substr($value, 0, 8),
+            substr($value, 8, 4),
+            substr($value, 12, 4),
+            substr($value, 16, 4),
+            substr($value, 20),
         );
     }
 }

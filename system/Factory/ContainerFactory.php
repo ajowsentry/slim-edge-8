@@ -11,9 +11,14 @@ use SlimEdge\Support\Paths;
 final class ContainerFactory
 {
     /**
-     * @var array<string, mixed>
+     * @var array<string, mixed> $definition
      */
-    private $definition = [];
+    private array $definition = [];
+    
+    /**
+     * @var array<string, mixed> $config
+     */
+    private array $config = [];
 
     /**
      * @return ContainerInterface
@@ -21,35 +26,43 @@ final class ContainerFactory
     public static function create(): ContainerInterface
     {
         $factory = new self;
-        return $factory
-            ->registerConfig()
-            ->registerDependecies()
-            ->build();
+        $factory->config = load_config();
+        return $factory->build();
     }
 
     private function build(): ContainerInterface
     {
-        $builder = new DI\ContainerBuilder();
-
-        $builder->useAttributes(true)->useAutowiring(true);
-
-        $config = load_config();
-        $compileContainer = $config['compileContainer'] ?? false;
+        $compileContainer = $this->config['compileContainer'] ?? false;
 
         assert(
             is_bool($compileContainer),
             "Compile container option must be boolean"
         );
-        
-        if ($compileContainer) {
-            $builder->enableCompilation(Paths::Cache . '/di');
+
+        $directory = Paths::Cache . '/di';
+        if($compileContainer && file_exists($compiledPath = $directory . '/CompiledContainer.php')) {
+            call_user_func(function($path) { require_once $path; }, $compiledPath);
+            $builder = new DI\ContainerBuilder('CompiledContainer');
+        }
+        else {
+            $builder = new DI\ContainerBuilder();
+
+            $this->definition['config'] = DI\value($this->config);
+            $this->registerConfig()->registerDependecies();
+            $builder->addDefinitions($this->definition);
         }
 
-        $this->definition['config'] = DI\value($config);
+        if ($compileContainer) {
+            $builder->enableCompilation($directory);
+        }
 
-        return $builder->addDefinitions($this->definition)->build();
+        return $builder
+            ->addDefinitions($this->getAlwaysLoadDependencies())
+            ->useAttributes(true)
+            ->useAutowiring(true)
+            ->build();
     }
-    
+
     /**
      * @return static
      */
@@ -108,37 +121,70 @@ final class ContainerFactory
             return [];
         };
 
+        $alwaysLoad = [
+            'database',
+            'hashids',
+        ];
+
         $pattern = Paths::System . '/dependencies/*.php';
         foreach(glob($pattern) as $script) {
             $key = substr(basename($script), 0, -4);
-            $definition = $load($key, $script);
-            $this->definition = array_merge($this->definition, $definition);
+            if(!in_array($key, $alwaysLoad)) {
+                $definition = $load($key, $script);
+                $this->definition = array_merge($this->definition, $definition);
+            }
         }
+
+        $alwaysLoad = $this->config['alwaysLoadDependencies'] ?? [];
 
         $pattern = Paths::Dependencies . '/*.php';
         foreach(glob($pattern) as $script) {
             $key = substr(basename($script), 0, -4);
-            $definition = $load($key, $script);
-            $this->definition = array_merge($this->definition, $definition);
+            if(!in_array($key, $alwaysLoad)) {
+                $definition = $load($key, $script);
+                $this->definition = array_merge($this->definition, $definition);
+            }
         }
 
         if(defined('ENVIRONMENT')) {
             $pattern = Paths::Dependencies . '/*.' . ENVIRONMENT . '.php';
             foreach(glob($pattern) as $script) {
                 $key = substr(basename($script), 0, -(strlen(ENVIRONMENT) + 5));
-                $definition = $load($key, $script);
-                $this->definition = array_merge($this->definition, $definition);
+                if(!in_array($key, $alwaysLoad)) {
+                    $definition = $load($key, $script);
+                    $this->definition = array_merge($this->definition, $definition);
+                }
             }
 
             $pattern = Paths::Dependencies . '/' . ENVIRONMENT . '/*.php';
             foreach(glob($pattern) as $script) {
                 $key = substr(basename($script), 0, -4);
-                $definition = $load($key, $script);
-                $this->definition = array_merge($this->definition, $definition);
+                if(!in_array($key, $alwaysLoad)) {
+                    $definition = $load($key, $script);
+                    $this->definition = array_merge($this->definition, $definition);
+                }
             }
         }
 
         return $this;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function getAlwaysLoadDependencies(): array {
+        $dependencies = $this->config['alwaysLoadDependencies'] ?? [];
+
+        $result = array_merge(
+            load_dependency('database', Paths::System . '/dependencies'),
+            load_dependency('hashids', Paths::System . '/dependencies'),
+        );
+
+        foreach($dependencies as $dependency) {
+            $result = array_merge($result, load_dependency($dependency));
+        }
+
+        return $result;
     }
 
     private function __construct() { }

@@ -13,22 +13,22 @@ final class StreamAnalyzer
     /**
      * @var StreamInterface $stream
      */
-    public $stream;
+    public StreamInterface $stream;
 
     /**
      * @var int $size
      */
-    public $size = 0;
+    public int $size;
 
     /**
      * @var string $hash
      */
-    public $hash = null;
+    public string $hash;
 
     /**
      * @var bool $isBinary
      */
-    public $isBinary = false;
+    public bool $isBinary;
 
     public function __construct(StreamInterface $stream)
     {
@@ -42,15 +42,19 @@ final class StreamAnalyzer
     {
         $this->stream->rewind();
         $hash = hash_init('md5');
+        $size = 0;
+        $isBinary = false;
 
         while(!$this->stream->eof()) {
             $content = $this->stream->read(1024);
-            $this->size += strlen($content);
-            $this->isBinary = $this->isBinary || is_binary($content);
+            $size += strlen($content);
+            $isBinary = $this->isBinary || is_binary($content);
             hash_update($hash, $content);
         }
 
         $this->hash = hash_final($hash);
+        $this->size = $size;
+        $this->isBinary = $isBinary;
 
         return $this;
     }

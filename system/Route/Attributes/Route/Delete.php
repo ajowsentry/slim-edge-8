@@ -7,7 +7,7 @@ namespace SlimEdge\Route\Attributes\Route;
 use Attribute;
 use SlimEdge\Route\Attributes\Route;
 
-#[Attribute(flags: Attribute::TARGET_METHOD|Attribute::IS_REPEATABLE)]
+#[Attribute(flags: Attribute::TARGET_CLASS|Attribute::TARGET_METHOD|Attribute::IS_REPEATABLE)]
 class Delete extends Route
 {
     /**

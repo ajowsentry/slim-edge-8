@@ -10,9 +10,10 @@ use DI\Bridge\Slim;
 use SlimEdge\Route;
 use SlimEdge\Support\Paths;
 use SlimEdge\Cors\Preflight;
-use Psr\Container\ContainerInterface;
 use Slim\Exception\HttpException;
+use Psr\Container\ContainerInterface;
 use SlimEdge\ErrorHandlers\HttpHandler;
+use Slim\Middleware\ContentLengthMiddleware;
 
 final class AppFactory
 {
@@ -47,26 +48,27 @@ final class AppFactory
      */
     public function registerRoutes(): static
     {
-        $this->app->addRoutingMiddleware();
+        if($this->app->getContainer()->has('config.routing')) {
 
-        $config = $this->app->getContainer()->get('config.routing');
+            $config = $this->app->getContainer()->get('config.routing');
 
-        if($config['caching'] ?? false) {
-            $routerCacheFile = Paths::Cache . '/routeDispatcher.php';
-            $this->app->getRouteCollector()->setCacheFile($routerCacheFile);
-        }
+            if($config['caching'] ?? false) {
+                $routerCacheFile = Paths::Cache . '/routeDispatcher.php';
+                $this->app->getRouteCollector()->setCacheFile($routerCacheFile);
+            }
 
-        foreach($config['routes'] ?? [] as $route)
-            load_route($this->app, $route);
+            foreach($config['routes'] ?? [] as $route)
+                load_route($this->app, $route);
 
-        $routeBasePath = $config['basePath'] ?? get_base_path();
-        if(!is_null($routeBasePath))
-            $this->app->setBasePath($routeBasePath);
+            $routeBasePath = $config['basePath'] ?? get_base_path();
+            if(!is_null($routeBasePath))
+                $this->app->setBasePath($routeBasePath);
 
-        $attributeRouting = $config['attributeDiscovery'] ?? true;
-        if($attributeRouting) {
-            $attributeRoutingFolder = (array) ($config['attributeDiscoveryFolder'] ?? 'Controllers');
-            Route\AttributeReader::register($this->app, $attributeRoutingFolder);
+            $attributeRouting = $config['attributeDiscovery'] ?? true;
+            if($attributeRouting) {
+                $attributeRoutingFolder = (array) ($config['attributeDiscoveryFolder'] ?? 'Controllers');
+                Route\AttributeReader::register($this->app, $attributeRoutingFolder);
+            }
         }
 
         $this->app->options('{uri:.+}', Preflight::class)->setName('preflight');
@@ -79,8 +81,7 @@ final class AppFactory
      */
     public function registerMiddlewares(): static
     {
-        $middlewares = $this->config['middlewares'] ?? [];
-        foreach($middlewares as $middleware) {
+        foreach($this->config['middlewares'] ?? [] as $middleware) {
             $this->app->add($middleware);
         }
 
@@ -89,7 +90,13 @@ final class AppFactory
         }
 
         $this->registerErrorHandler();
+
+        if($this->config['addContentLength'] ?? false) {
+            $this->app->add(ContentLengthMiddleware::class);
+        }
+
         $this->app->add(Cors\Middleware::class);
+        $this->app->addRoutingMiddleware();
 
         return $this;
     }
@@ -99,16 +106,17 @@ final class AppFactory
      */
     public function registerErrorHandler(): static
     {
-        if($this->config['enableErrorHandler'] ?? true) {
+        $config = container('config.errors') ?? [];
+        if($config['enableErrorHandler'] ?? true) {
             $middleware = $this->app->addErrorMiddleware(
-                $this->config['displayErrorDetails'] ?? false,
-                $this->config['logErrors'] ?? false,
-                $this->config['logErrorDetails'] ?? false
+                $config['displayErrorDetails'] ?? false,
+                $config['logErrors'] ?? false,
+                $config['logErrorDetails'] ?? false
             );
 
             $middleware->setErrorHandler(HttpException::class, HttpHandler::class, true);
 
-            $handlers = $this->config['handlers'] ?? [];
+            $handlers = $config['handlers'] ?? [];
             foreach($handlers as $handler => $types) {
                 $middleware->setErrorHandler($types, $handler, true);
             }

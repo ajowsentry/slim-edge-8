@@ -3,15 +3,21 @@
 declare(strict_types=1);
 
 return [
+    'timezone' => 'Asia/Jakarta',
+
     'appName'    => 'Slim Edge 8',
     'appVersion' => 'v1.0.0',
 
-    'timezone' => 'Asia/Jakarta',
-    'enableCache' => false,
     'enableBodyParsing' => true,
-    'compileContainer' => false,
+    
+    'enableCache' => ENVIRONMENT !== 'development',
+    'compileContainer' => ENVIRONMENT !== 'development',
 
     'middlewares' => [
 
+    ],
+
+    'alwaysLoadDependencies' => [
+        
     ],
 ];

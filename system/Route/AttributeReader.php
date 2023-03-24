@@ -106,12 +106,25 @@ class AttributeReader
             array_push($methodRoutes, ...$this->getMethodRoutes($method));
         }
 
+        $middlewares = $this->getMiddlewares($class);
+
+        $routeAttributes = $class->getAttributes(Route::class, ReflectionAttribute::IS_INSTANCEOF);
+        foreach($routeAttributes as $routeAttribute) {
+            $route = $routeAttribute->newInstance();
+            array_push($methodRoutes, new RouteDefiner(
+                $route->methods,
+                $route->pattern,
+                $route->name,
+                $class->getName(),
+                $route->arguments,
+                $middlewares,
+            ));
+        }
+
         if(count($methodRoutes) > 0) {
 
-            $middlewares = $this->getMiddlewares($class);
-
             $groupRoutes = array_map(
-                fn($groupAttribute) => new RouteGroupDefiner(
+                fn(ReflectionAttribute $groupAttribute) => new RouteGroupDefiner(
                     $groupAttribute->newInstance()->pattern,
                     $middlewares,
                     $methodRoutes,
@@ -130,6 +143,7 @@ class AttributeReader
             }
         }
 
+
         return $resolvedRoutes;
     }
 
@@ -143,8 +157,8 @@ class AttributeReader
 
         if($method->isPublic() && !$method->isStatic()) {
             $routeAttributes = $method->getAttributes(Route::class, ReflectionAttribute::IS_INSTANCEOF);
-            $callable = [$method->getDeclaringClass()->getName(), $method->getName()];
             if(count($routeAttributes) > 0) {
+                $callable = [$method->getDeclaringClass()->getName(), $method->getName()];
                 $middlewares = $this->getMiddlewares($method);
                 foreach($routeAttributes as $routeAttribute) {
                     $route = $routeAttribute->newInstance();

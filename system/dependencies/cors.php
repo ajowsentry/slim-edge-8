@@ -8,17 +8,20 @@ use Psr\Container\ContainerInterface;
 return [
 
     Cors\Config::class => DI\factory(function(ContainerInterface $container) {
-        $config = get_cache(Cors\Config::class, null, 'config');
-        if(is_null($config)) {
-            if($container->has('config.cors')) {
-                $config = $container->get('config.cors');
-                $result = new Cors\Config($config);
-                set_cache(Cors\Config::class, $result, 'config');
-                return $result;
-            }
-            return new Cors\Config([]);
+        
+        $cached = get_cache(Cors\Config::class, null, 'config');
+
+        if(!is_null($cached)) {
+            return $cached;
         }
-        return $config;
+
+        if($container->has('config.cors')) {
+            $config = new Cors\Config($container->get('config.cors'));
+            set_cache(Cors\Config::class, $config, 'config');
+            return $config;
+        }
+
+        return new Cors\Config();
     }),
 
     Cors\Middleware::class => DI\factory(function(Cors\Config $config) {

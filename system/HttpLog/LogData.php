@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SlimEdge\HttpLog;
 
+use DateTime;
+
 final class LogData
 {
     /**
      * @var array<string,mixed> $data
      */
-    private $data = [];
+    private array $data = [];
 
     /**
      * @param string $type
@@ -21,7 +23,7 @@ final class LogData
         $this->data['type'] = $type;
 
         $this->append('timestamp', $datetime->getTimestamp() * 1000 + $datetime->format('v'));
-        $this->append('datetime', $datetime->format(\DateTime::RFC3339_EXTENDED));
+        $this->append('datetime', $datetime->format(DateTime::RFC3339_EXTENDED));
         $this->appendAll($payload);
     }
 

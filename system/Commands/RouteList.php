@@ -127,7 +127,7 @@ class RouteList extends Command
                 if(in_array('uri', $searchBy))
                     $foundOne = $foundOne || $found;
 
-                $found = stripos($name, $searchQuery) !== false;
+                $found = !is_null($name) && stripos($name, $searchQuery) !== false;
                 if(in_array('name', $searchBy))
                     $foundOne = $foundOne || $found;
 
