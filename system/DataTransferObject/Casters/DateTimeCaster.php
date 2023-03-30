@@ -9,6 +9,9 @@ use DateTimeInterface;
 use SlimEdge\DataTransferObject\CastException;
 use SlimEdge\DataTransferObject\CasterInterface;
 
+/**
+ * @implements CasterInterface<DateTime>
+ */
 class DateTimeCaster implements CasterInterface
 {
     /** {@inheritdoc} */

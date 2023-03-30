@@ -6,6 +6,9 @@ namespace SlimEdge\DataTransferObject\Casters;
 
 use SlimEdge\DataTransferObject\CasterInterface;
 
+/**
+ * @implements CasterInterface<object>
+ */
 class ObjectCaster implements CasterInterface
 {
     /** {@inheritdoc} */

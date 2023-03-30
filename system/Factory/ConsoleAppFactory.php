@@ -13,12 +13,12 @@ final class ConsoleAppFactory
     /**
      * @var array<string,mixed> $config
      */
-    private $config = [];
+    private array $config = [];
 
     /**
      * @var Application $consoleApp
      */
-    private $consoleApp;
+    private Application $consoleApp;
 
     /**
      * @param ContainerInterface $container

@@ -6,6 +6,9 @@ namespace SlimEdge\DataTransferObject\Casters;
 
 use SlimEdge\DataTransferObject\CasterInterface;
 
+/**
+ * @implements CasterInterface<array<mixed,mixed>>
+ */
 class ArrayCaster implements CasterInterface
 {
     /** {@inheritdoc} */

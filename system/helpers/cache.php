@@ -52,9 +52,8 @@ if(! function_exists('get_cache')) {
         if(is_null($scope) || enable_cache($scope)) {
             /** @var CacheInterface $cache */
             $cache = container(CacheInterface::class);
-            $cacheKey = str_replace('\\', '_', $key);
-            if($scope) $cacheKey = $scope . '-' . $cacheKey;
-            return $cache->get($cacheKey, $default);
+            $cacheKey = str_replace(['\\', '/'], ['_', '_'], $key);
+            return $cache->get($scope ? "{$scope}-{$cacheKey}" : $cacheKey, $default);
         }
 
         return $default;
@@ -74,11 +73,43 @@ if(! function_exists('set_cache')) {
         if(is_null($scope) || enable_cache($scope)) {
             /** @var CacheInterface $cache */
             $cache = container(CacheInterface::class);
-            $cacheKey = str_replace('\\', '_', $key);
-            if($scope) $cacheKey = $scope . '-' . $cacheKey;
-            return $cache->set($cacheKey, $value);
+            $cacheKey = str_replace(['\\', '/'], ['_', '_'], $key);
+            return $cache->set($scope ? "{$scope}-{$cacheKey}" : $cacheKey, $value);
         }
 
         return false;
+    }
+}
+
+if(! function_exists('data_cache')) {
+
+    /**
+     * @template T
+     * @param string|list<string> $key
+     * @param Closure():T $getter
+     * @param int $ttl
+     * @return T
+     */
+    function data_cache(array|string $key, Closure $getter, int $ttl = 5): mixed
+    {
+        if(enable_cache('data')) {
+            /** @var CacheInterface $cache */
+            $cache = container(CacheInterface::class);
+            $cacheKey = 'data-' . str_replace(
+                ['\\', '/'],
+                ['_', '_'],
+                is_array($key) ? join('.', $key) : $key
+            );
+
+            if($cache->has($cacheKey))
+                return $cache->get($cacheKey);
+        }
+
+        $data = $getter();
+
+        if(isset($cache, $cacheKey))
+            $cache->set($cacheKey, $data, $ttl);
+
+        return $data;
     }
 }

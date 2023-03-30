@@ -7,6 +7,9 @@ namespace SlimEdge\DataTransferObject\Casters;
 use SlimEdge\DataTransferObject\CastException;
 use SlimEdge\DataTransferObject\CasterInterface;
 
+/**
+ * @implements CasterInterface<string>
+ */
 class StringCaster implements CasterInterface
 {
     /** {@inheritdoc} */

@@ -43,7 +43,7 @@ final class MetadataRegistry
      * @param string $className
      * @return array<string,PropertyMetadata>
      */
-    public static function create(string $className)
+    public static function create(string $className): array
     {
         if(!class_exists($className))
             throw new ClassNotFoundException("Class '{$className}' not found.");

@@ -30,16 +30,6 @@ final class ValidatorRegistry
 
     /**
      * @param string $type
-     * @param Validatable|string $validator
-     * @return void
-     */
-    public static function set(string $type, $validator): void
-    {
-        self::$registry[$type] = $validator;
-    }
-
-    /**
-     * @param string $type
      * @return bool
      */
     public static function has(string $type): bool

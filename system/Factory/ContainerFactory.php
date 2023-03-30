@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SlimEdge\Factory;
 
 use DI;
-use Psr\Container\ContainerInterface;
+use DI\Container;
 use SlimEdge\Support\Paths;
+use Psr\Container\ContainerInterface;
 
 final class ContainerFactory
 {
@@ -14,7 +15,7 @@ final class ContainerFactory
      * @var array<string, mixed> $definition
      */
     private array $definition = [];
-    
+
     /**
      * @var array<string, mixed> $config
      */
@@ -42,18 +43,21 @@ final class ContainerFactory
         $directory = Paths::Cache . '/di';
         if($compileContainer && file_exists($compiledPath = $directory . '/CompiledContainer.php')) {
             call_user_func(function($path) { require_once $path; }, $compiledPath);
-            $builder = new DI\ContainerBuilder('CompiledContainer');
+            if(class_exists(\CompiledContainer::class) && is_subclass_of(\CompiledContainer::class, Container::class)) {
+                $builder = new DI\ContainerBuilder(\CompiledContainer::class);
+            }
         }
-        else {
+
+        if(!isset($builder)) {
             $builder = new DI\ContainerBuilder();
 
             $this->definition['config'] = DI\value($this->config);
             $this->registerConfig()->registerDependecies();
             $builder->addDefinitions($this->definition);
-        }
 
-        if ($compileContainer) {
-            $builder->enableCompilation($directory);
+            if ($compileContainer) {
+                $builder->enableCompilation($directory);
+            }
         }
 
         return $builder

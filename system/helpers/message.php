@@ -32,7 +32,7 @@ if(! function_exists('create_response_from_file')) {
      */
     function create_response_from_file(string $filename): ResponseInterface
     {
-        $mime = guess_mime_type($filename) ?? mime_content_type($filename) ?? 'application/octet-stream';
+        $mime = guess_mime_type($filename) ?? mime_content_type($filename) ?: 'application/octet-stream';
         $stream = create_stream_from_file($filename, 'r');
         return create_response()
             ->withBody($stream)

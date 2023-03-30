@@ -20,12 +20,12 @@ final class AppFactory
     /**
      * @var array<string,mixed> $config
      */
-    private $config = [];
+    private array $config = [];
 
     /**
      * @var App $app
      */
-    private $app;
+    private App $app;
 
     /**
      * @param ContainerInterface $container
@@ -89,7 +89,6 @@ final class AppFactory
             $this->app->addBodyParsingMiddleware();
         }
 
-        $this->registerErrorHandler();
 
         if($this->config['addContentLength'] ?? false) {
             $this->app->add(ContentLengthMiddleware::class);
@@ -97,6 +96,7 @@ final class AppFactory
 
         $this->app->add(Cors\Middleware::class);
         $this->app->addRoutingMiddleware();
+        $this->registerErrorHandler();
 
         return $this;
     }

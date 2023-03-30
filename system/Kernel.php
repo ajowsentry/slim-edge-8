@@ -6,6 +6,7 @@ namespace SlimEdge;
 
 use Slim\App;
 use ErrorException;
+use SlimEdge\Support\Paths;
 use SlimEdge\Factory\AppFactory;
 use Psr\Container\ContainerInterface;
 use SlimEdge\Factory\ContainerFactory;
@@ -74,6 +75,8 @@ class Kernel
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
 
+        self::loadHelpers();
+
         $config = static::getContainer()->get('config');
         date_default_timezone_set($config['timezone'] ?? 'UTC');
 
@@ -105,5 +108,21 @@ class Kernel
     public function run(): void
     {
         is_cli() ? $this->runConsoleApp() : $this->runApp();
+    }
+
+    /**
+     * @return void
+     */
+    private static function loadHelpers(): void
+    {
+        require_once Paths::System . '/helpers/_autoload.php';
+        if(is_dir($dir = Paths::Helpers)) {
+            foreach(glob($dir . '/*.php') as $filename) {
+                $key = substr(basename($filename), 0, -4);
+                if(false === strpos($key, '.')) {
+                    load_helper($key);
+                }
+            }
+        }
     }
 }
