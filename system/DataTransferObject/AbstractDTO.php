@@ -21,6 +21,12 @@ abstract class AbstractDTO implements JsonSerializable
      * @var bool $expandable
      */
     protected static bool $expandable = false;
+    
+    /**
+     * Expose expanded property when serializing to JSON
+     * @var bool $exposeExpandedProperty
+     */
+    protected static bool $exposeExpandedProperty = false;
 
     /**
      * @var ?array<string,mixed> $expandedProperties
@@ -298,9 +304,10 @@ abstract class AbstractDTO implements JsonSerializable
     }
 
     /**
+     * @param bool $forJson Result expected for JSON serialize
      * @return array<string,mixed>
      */
-    public function toArray(): array
+    public function toArray(bool $forJson = false): array
     {
         $result = [];
         $metadataMap = static::getMetadata();
@@ -308,7 +315,7 @@ abstract class AbstractDTO implements JsonSerializable
             try {
                 $raw = $this->$property;
                 if($raw instanceof AbstractDTO) {
-                    $resolved = $raw->toArray();
+                    $resolved = $forJson ? $raw->jsonSerialize() : $raw->toArray();
                 }
                 elseif($raw instanceof ScalarDTO) {
                     $resolved = $raw->get();
@@ -321,7 +328,9 @@ abstract class AbstractDTO implements JsonSerializable
                     if(count($raw) > 0) {
                         if(array_key_exists($property, $metadataMap)) {
                             if(is_subclass_of($metadataMap[$property]->type, AbstractDTO::class)) {
-                                $resolver = fn($value) => $value?->toArray();
+                                $resolver = $forJson
+                                    ? fn($value) => $value?->jsonSerialize()
+                                    : fn($value) => $value?->toArray();
                             }
                             elseif(is_subclass_of($metadataMap[$property]->type, ScalarDTO::class)) {
                                 $resolver = fn($value) => $value?->get();
@@ -475,7 +484,22 @@ abstract class AbstractDTO implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return $this->toArray();
+        $result = [];
+
+        $data = $this->toArray(true);
+        foreach(static::getMetadata() as $key => $metadata) {
+            if($metadata->exposeJson === true)
+                $result[$key] = $data[$key];
+
+            elseif(is_string($metadata->exposeJson))
+                $result[$metadata->exposeJson] = $data[$key];
+
+            unset($data[$key]);
+        }
+
+        return static::$exposeExpandedProperty
+            ? array_merge($result, $data)
+            : $result;
     }
 
     /**
@@ -483,6 +507,6 @@ abstract class AbstractDTO implements JsonSerializable
      */
     public function toJson(): string
     {
-        return json_encode($this->toArray());
+        return json_encode($this->jsonSerialize());
     }
 }

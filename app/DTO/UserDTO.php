@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DTO;
 
 use SlimEdge\DataTransferObject\AbstractDTO;
+use SlimEdge\DataTransferObject\Attributes\ExposeJson;
 use SlimEdge\DataTransferObject\Attributes\FetchBody;
 use SlimEdge\DataTransferObject\Attributes\TypeOf;
 
@@ -20,6 +21,7 @@ class UserDTO extends AbstractDTO
     public StatusEnum $state;
 
     #[FetchBody]
+    #[ExposeJson(false)]
     #[TypeOf('int', isCollection: true)]
     public array $roles;
 }

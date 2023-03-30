@@ -11,7 +11,9 @@ use ReflectionNamedType;
 use InvalidArgumentException;
 use SlimEdge\DataTransferObject\Attributes\Fetch;
 use SlimEdge\DataTransferObject\Attributes\TypeOf;
+use SlimEdge\DataTransferObject\Attributes\ExposeJson;
 use SlimEdge\DataTransferObject\Attributes\TrimStrings;
+use SlimEdge\DataTransferObject\Attributes\RemoveInvisibleCharacters;
 
 final class MetadataRegistry
 {
@@ -88,10 +90,16 @@ final class MetadataRegistry
                 $metadata->trimString = $trimStrings->value;
             }
 
-            $removeInvisibleCharactersAttributes = $property->getAttributes(TrimStrings::class);
+            $removeInvisibleCharactersAttributes = $property->getAttributes(RemoveInvisibleCharacters::class);
             if(isset($removeInvisibleCharactersAttributes[0])) {
                 $removeInvisibleCharacters = $removeInvisibleCharactersAttributes[0]->newInstance();
                 $metadata->removeInvisibleCharacters = $removeInvisibleCharacters->value;
+            }
+
+            $exposeJsonAttributes = $property->getAttributes(ExposeJson::class);
+            if(isset($exposeJsonAttributes[0])) {
+                $exposeJson = $exposeJsonAttributes[0]->newInstance();
+                $metadata->exposeJson = $exposeJson->name;
             }
 
             if($class->hasMethod($mutator = 'mutate' . to_pascal_case($metadata->property))) {

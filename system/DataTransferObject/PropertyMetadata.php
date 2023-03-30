@@ -58,6 +58,11 @@ final class PropertyMetadata
      */
     public ?string $defaultCallback = null;
 
+    /**
+     * @var bool|string $exposeJson
+     */
+    public bool|string $exposeJson = true;
+
     public function __construct(string $property)
     {
         $this->property = $property;

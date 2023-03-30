@@ -27,7 +27,8 @@
         "hashids/hashids": "^5.0",
         "robinvdvleuten/ulid": "^5.0",
         "ajowsentry/sqltark": "^0.9.4",
-        "firebase/php-jwt": "^6.4"
+        "firebase/php-jwt": "^6.4",
+        "predis/predis": "^2.1"
     },
     "autoload": {
         "psr-4": {
