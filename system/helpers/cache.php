@@ -12,9 +12,9 @@ if(! function_exists('enable_cache')) {
      */
     function enable_cache(string $scope): bool
     {
-        if(is_cli()) {
-            return false;
-        }
+        // if(is_cli()) {
+        //     return false;
+        // }
 
         /**
          * @var array<string,mixed> $config

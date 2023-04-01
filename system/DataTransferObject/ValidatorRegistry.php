@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace SlimEdge\DataTransferObject;
 
-use BackedEnum;
 use DateTime;
-use DateTimeInterface;
-use Error;
-use ReflectionClass;
+use BackedEnum;
 use ReflectionEnum;
-use ReflectionProperty;
+use DateTimeInterface;
+use SlimEdge\Support\Paths;
 use Respect\Validation\Rules;
-use Respect\Validation\Rules\AbstractComposite;
 use Respect\Validation\Validatable;
 use SlimEdge\DataTransferObject\Attributes\Fetch;
-use SlimEdge\Support\Paths;
 
 final class ValidatorRegistry
 {
@@ -38,6 +34,9 @@ final class ValidatorRegistry
         DateTimeInterface::class => Rules\DateTime::class,
     ];
 
+    /**
+     * @var array<string,string> $definitionRegistry
+     */
     private static array $definitionRegistry = [
         'bool'    => Rules\BoolType::class,
         'boolean' => Rules\BoolType::class,
@@ -86,9 +85,7 @@ final class ValidatorRegistry
 
             if(is_null($validator)) {
                 $validator = self::createDTOValidator($type);
-                if(!is_null($validator)) {
-                    set_cache($type, $validator, 'validator');
-                }
+                set_cache($type, $validator, 'validator');
             }
 
             return self::$registry[$type] = $validator;
@@ -100,9 +97,9 @@ final class ValidatorRegistry
     /**
      * @template T of AbstractDTO
      * @param class-string<T> $class
-     * @return ?Validatable
+     * @return Validatable
      */
-    private static function createDTOValidator(string $class)
+    private static function createDTOValidator(string $class): Validatable
     {
         return new ("{$class}Validator");
     }
@@ -111,20 +108,26 @@ final class ValidatorRegistry
     {
         self::$autoloadRegistered = self::$autoloadRegistered || spl_autoload_register(static function(string $class) {
             if(str_ends_with($class, 'Validator') && is_subclass_of($dtoClass = substr($class, 0, -9), AbstractDTO::class)) {
-                $scriptPath = Paths::Cache . '/dto/' . str_replace('\\', '/', $class) . '.php';
-                if(is_file($scriptPath)) {
-                    include $scriptPath;
-                    return;
-                }
+                $enableCompilation = enable_cache('dtoValidator');
+                if($enableCompilation) {
+                    $scriptPath = Paths::Cache . '/dto/' . str_replace('\\', '/', $class) . '.php';
+                    if(is_file($scriptPath)) {
+                        include $scriptPath;
+                        return;
+                    }
 
-                $directory = dirname($scriptPath);
-                if(!is_dir($directory)) {
-                    mkdir($directory, 0777, true);
+                    $directory = dirname($scriptPath);
+                    if(!is_dir($directory)) {
+                        mkdir($directory, 0777, true);
+                    }
                 }
 
                 $script = self::generateDTOValidatorClass($dtoClass);
-                if(false !== file_put_contents($scriptPath, $script)) {
+                if($enableCompilation && false !== file_put_contents($scriptPath, $script)) {
                     include $scriptPath;
+                }
+                else {
+                    eval(substr($script, 5));
                 }
             }
         });
@@ -133,13 +136,13 @@ final class ValidatorRegistry
     /**
      * @template T of AbstractDTO
      * @param class-string<T> $class
+     * @return string
      */
-    private static function generateDTOValidatorClass(string $class)
+    private static function generateDTOValidatorClass(string $class): string
     {
         $rules = [];
         $metadataMap = MetadataRegistry::get($class);
 
-        // $definer = null;
         foreach($metadataMap as $key => $metadata) {
             $fieldRules = [];
 
