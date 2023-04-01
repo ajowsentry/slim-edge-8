@@ -107,7 +107,8 @@ final class MetadataRegistry
             }
 
             if($class->hasMethod($validator = 'get' . to_pascal_case($metadata->property) . 'Validator')) {
-                $metadata->validator = $validator;
+                $isStatic = $class->getMethod($validator)->isStatic();
+                $metadata->validator = $isStatic ? $validator : null;
             }
 
             if($class->hasMethod($defaultCallback = 'getDefault' . to_pascal_case($metadata->property))) {

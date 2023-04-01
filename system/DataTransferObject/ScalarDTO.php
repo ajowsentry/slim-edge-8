@@ -6,6 +6,7 @@ namespace SlimEdge\DataTransferObject;
 
 use Stringable;
 use JsonSerializable;
+use ReflectionClass;
 use Respect\Validation\Validatable;
 
 /**
@@ -21,14 +22,14 @@ abstract class ScalarDTO implements JsonSerializable, Stringable
     /**
      * @var string $type
      */
-    protected string $type;
+    protected static string $type;
 
     /**
-     * @param scalar $value
+     * @param ?scalar $value
      */
-    final public function __construct(mixed $value)
+    final public function __construct(mixed $value = null)
     {
-        $this->set($value);
+        $this->set($value ?? static::getDefaultValue());
     }
 
     /**
@@ -55,16 +56,16 @@ abstract class ScalarDTO implements JsonSerializable, Stringable
     }
 
     /**
-     * @return Validatable
+     * @return ?Validatable
      */
-    public function getValidator(): ?Validatable
+    public static function getValidator(): ?Validatable
     {
-        return ValidatorRegistry::get($this->type) ?: null;
+        return ValidatorRegistry::get(static::$type);
     }
 
     protected function tryCast(mixed $value, mixed &$output): bool
     {
-        if(false !== ($caster = CasterRegistry::get($this->type))) {
+        if(false !== ($caster = CasterRegistry::get(static::$type))) {
             try {
                 $output = $caster->cast($value);
                 return true;
@@ -87,13 +88,13 @@ abstract class ScalarDTO implements JsonSerializable, Stringable
         return $value;
     }
 
-    public function getDefaultValue(): mixed
+    public static function getDefaultValue(): mixed
     {
-        return null;
+        return (new ReflectionClass(static::class))->getProperty('value')->getDefaultValue();
     }
 
     /**
-     * @return scalar
+     * @return ?scalar
      */
     public function jsonSerialize(): mixed
     {

@@ -44,16 +44,19 @@ abstract class AbstractDTO implements JsonSerializable
     private array $nameReferenceMap = [];
 
     /**
-     * @var bool|null|Validatable $validator
-     */
-    private bool|null|Validatable $validator = null;
-
-    /**
      * @return array<string,PropertyMetadata>
      */
     protected static function getMetadata(): array
     {
         return MetadataRegistry::get(static::class);
+    }
+
+    /**
+     * @return ?Validatable
+     */
+    protected function getValidator(): ?Validatable
+    {
+        return ValidatorRegistry::get(static::class);
     }
 
     /**
@@ -148,10 +151,7 @@ abstract class AbstractDTO implements JsonSerializable
                 $this->set($key, call_user_func([$this, $function]));
             }
             elseif(is_subclass_of($metadataMap[$key]->type, ScalarDTO::class)) {
-                $defaultValue = $metadataMap[$key]->type::getDefaultValue();
-                if(!is_null($defaultValue)) {
-                    $this->set($key, new ($metadataMap[$key]->type)($defaultValue));
-                }
+                $this->set($key, new ($metadataMap[$key]->type)());
             }
         }
     }
@@ -237,29 +237,26 @@ abstract class AbstractDTO implements JsonSerializable
             }
         }
 
-        if(is_subclass_of($metadata->type, ScalarDTO::class)) {
+        if(is_subclass_of($metadata->type, ScalarDTO::class) && !($value instanceof ScalarDTO)) {
             $output = $metadata->isCollection
-                ? array_map(fn($item) => new $metadata->type($item), $value)
-                : new $metadata->type($value);
+                ? array_map(fn($item) => new ($metadata->type)($item), $value)
+                : new ($metadata->type)($value);
 
             return true;
         }
 
-        if(is_subclass_of($metadata->type, BackedEnum::class)) {
+        if(is_subclass_of($metadata->type, BackedEnum::class) && !($value instanceof BackedEnum)) {
             $enum = new ReflectionEnum($metadata->type);
-            if($enum->getBackingType()->getName() === 'string') {
-                
+            $caster = match($enum->getBackingType()->getName()) {
+                'string' => 'strval',
+                'int'    => 'intval',
+                default  => null,
+            };
+
+            if(!is_null($caster)) {
                 $output = $metadata->isCollection
-                    ? array_map(fn($item) => $metadata->type::tryFrom(strval($item)), $value)
-                    : $metadata->type::tryFrom(strval($value));
-                
-                return true;
-            }
-            elseif($enum->getBackingType()->getName() === 'int') {
-                $output = $metadata->isCollection
-                    ? array_map(fn($item) => $metadata->type::tryFrom(intval($item)), $value)
-                    : $metadata->type::tryFrom(intval($value));
-                
+                    ? array_map(fn($item) => $metadata->type::tryFrom(($caster)($item)), $value)
+                    : $metadata->type::tryFrom(($caster)($value));
                 return true;
             }
         }
@@ -327,15 +324,16 @@ abstract class AbstractDTO implements JsonSerializable
                     $resolved = [];
                     if(count($raw) > 0) {
                         if(array_key_exists($property, $metadataMap)) {
-                            if(is_subclass_of($metadataMap[$property]->type, AbstractDTO::class)) {
+                            $type = $metadataMap[$property]->type;
+                            if(is_subclass_of($type, AbstractDTO::class)) {
                                 $resolver = $forJson
                                     ? fn($value) => $value?->jsonSerialize()
                                     : fn($value) => $value?->toArray();
                             }
-                            elseif(is_subclass_of($metadataMap[$property]->type, ScalarDTO::class)) {
+                            elseif(is_subclass_of($type, ScalarDTO::class)) {
                                 $resolver = fn($value) => $value?->get();
                             }
-                            elseif(is_subclass_of($metadataMap[$property]->type, BackedEnum::class)) {
+                            elseif(is_subclass_of($type, BackedEnum::class)) {
                                 $resolver = fn($value) => $value?->value;
                             }
                         }
@@ -362,81 +360,12 @@ abstract class AbstractDTO implements JsonSerializable
     }
 
     /**
-     * @return ?Validatable
-     */
-    public function getValidator(): ?Validatable
-    {
-        if(false === $this->validator)
-            return null;
-        
-        if($this->validator instanceof Validatable)
-            return $this->validator;
-
-        $rules = new Rules\AllOf();
-        foreach(static::getMetadata() as $key => $metadata) {
-            $fieldRules = [];
-
-            if(false !== ($validator = ValidatorRegistry::get($metadata->type)))
-                array_push($fieldRules, $validator);
-
-            elseif(is_subclass_of($metadata->type, ScalarDTO::class))
-                array_push($fieldRules, $this->$key->getValidator());
-
-            elseif(is_subclass_of($metadata->type, BackedEnum::class)) {
-                $type = (new ReflectionEnum($metadata->type))->getBackingType()->getName();
-                if(false !== ($validator = ValidatorRegistry::get($type)))
-                    array_push($fieldRules, $validator);
-            }
-
-            if(!is_null($method = $metadata->validator))
-                $validators = call_user_func([$this, $method]);
-
-            elseif(is_subclass_of($metadata->type, AbstractDTO::class))
-                $validators = $this->$key->getValidator();
-
-            if(isset($validators)) {
-                if($validators instanceof AbstractComposite) {
-                    array_push($fieldRules, ...$validators->getRules());
-                }
-                elseif($validators instanceof Validatable) {
-                    array_push($fieldRules, $validators);
-                }
-            }
-
-            if(count($fieldRules) > 0) {
-                $rule = count($fieldRules) > 1
-                    ? new Rules\AllOf(...$fieldRules)
-                    : $fieldRules[0];
-
-                if($metadata->isCollection)
-                    $rule = new Rules\Each($rule);
-
-                if($metadata->isNullable)
-                    $rule = new Rules\Nullable($rule);
-
-                $rule = new Rules\Key($key, $rule);
-
-                if(isset($this->nameReferenceMap[$key]))
-                    $rule->setName($this->nameReferenceMap[$key]);
-
-                $rules->addRule($rule);
-            }
-        }
-
-        if(count($rules->getRules()) > 0)
-            return $this->validator = $rules;
-
-        $this->validator = false;
-        return null;
-    }
-
-    /**
      * Run validation, throws on error
      */
     public function check(): void
     {
         $this->getValidator()
-            ->check($this->toArray());
+            ?->check($this->toArray());
     }
 
     /**
@@ -446,7 +375,7 @@ abstract class AbstractDTO implements JsonSerializable
     public function validate(): bool
     {
         return $this->getValidator()
-            ->validate($this->toArray());
+            ?->validate($this->toArray()) ?? true;
     }
 
     /**

@@ -6,7 +6,7 @@ use SlimEdge\DataTransferObject\ScalarDTO;
 
 class PasswordField extends ScalarDTO
 {
-    protected string $type = 'string';
+    protected static string $type = 'string';
 
     public function getHash(): string
     {

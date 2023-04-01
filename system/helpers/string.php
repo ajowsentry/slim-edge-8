@@ -122,6 +122,7 @@ if(! function_exists('string_equals'))
      * @param string $str2
      * 
      * @return bool
+     * @deprecated use ```hash_equals``` instead
      */
     function string_equals(string $str1, string $str2): bool
     {
@@ -174,5 +175,24 @@ if(! function_exists('remove_invisible_characters'))
     function remove_invisible_characters(string $string): string
     {
         return preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $string);
+    }
+}
+
+if(! function_exists('escape_php_string')) {
+    function escape_php_string(string $string): string
+    {
+        return str_replace(
+            ["\"", '\'', '\\', "\$", "\n", "\t", "\r"],
+            ["\\\"", '\\\'', '\\\\', "\\$", "\\n", "\\t", "\\r"],
+            $string
+        );
+    }
+}
+
+if(! function_exists('shift_indent')) {
+    function shift_indent(string $string, int $spaceCount = 4): string
+    {
+        $spaces = str_repeat(' ', $spaceCount);
+        return rtrim($spaces . str_replace("\n", "\n{$spaces}", $string), ' ');
     }
 }
