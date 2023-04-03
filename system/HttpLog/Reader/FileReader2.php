@@ -71,6 +71,7 @@ class FileReader2
         $left = 0;
         $right = intdiv(ftell($indexFile), 18);
 
+        $mid = -1;
         while($left <= $right) {
             $mid = intdiv(($left + $right), 2);
             fseek($indexFile, 18 * $mid);
@@ -107,52 +108,83 @@ class FileReader2
     public function iterateJson(DateTime $dateTime, int $page = 0, int $offset = 0): Generator
     {
         $dateTime = $dateTime->setTimezone(new DateTimeZone('UTC'));
-        $pageFound = false;
-        $dateFound = false;
-        while(true) {
-            $path = $this->config->path
-                . '/' . $dateTime->format('Ym')
-                . '/log_' . $dateTime->format('Y-m-d')
-                . '_' . str_pad_left(strval($page), 4, '0')
-                . '.log';
 
-            if(!file_exists($path)) {
-                if($pageFound) {
-                    $page++;
-                    $pageFound = false;
-                }
-                elseif($dateFound) {
-                   $dateTime = $dateTime->add(new DateInterval('P1D'));
-                   $page = 0;
-                   $dateFound = false; 
-                }
-                else {
-                    break;
-                }
-
+        $startPeriod = $dateTime->format('Ym');
+        $startDate = $dateTime->format('Y-m-d');
+        $periodIterator = new DirectoryIterator($this->config->path);
+        while(($periodFileInfo = $periodIterator->current())->valid()) {
+            if($periodFileInfo->isDot()) {
                 continue;
             }
 
-            $pageFound = true;
-            $dateFound = true;
-            $this->page = $page;
-
-            try {
-                $logFile = create_stream($path, 'r');
-                if($offset > 0) {
-                    $logFile->seek($offset);
-                }
-
-                foreach($this->lineIterator($logFile) as $line) {
-                    yield $line;
-                }
-            }
-            finally {
-                if(isset($logFile))
-                    $logFile->close();
+            if($periodFileInfo->getFilename() == $startPeriod) {
+                break;
             }
 
-            $offset = 0;
+            $periodIterator->next();
+        }
+
+        $startPage = str_pad_left(strval($page), 4, '0');
+        $pageIterator = new DirectoryIterator($periodFileInfo->getPath());
+        while(($pageFileInfo = $pageIterator->current())->valid()) {
+            if($pageFileInfo->isDot()) {
+                continue;
+            }
+
+            if($pageFileInfo->getExtension() === 'idx') {
+                $pageIterator->seek(intval($pageIterator->key()) - 1);
+                break;
+            }
+
+            $page = substr($pageFileInfo->getFilename(), -8, 4);
+            if($page == $startPage) {
+                break;
+            }
+
+            $pageIterator->next();
+        }
+
+        while(($periodFileInfo = $periodIterator->current())->valid()) {
+            if($periodFileInfo->getFilename() == $startPeriod) {
+                break;
+            }
+
+            $pageIterator = new DirectoryIterator($periodFileInfo->getPath());
+            $pageStart = false;
+            while(($pageFileInfo = $pageIterator->current())->valid()) {
+                if($pageFileInfo->getExtension() === 'idx') {
+                    break;
+                }
+
+                if(!$pageStart) {
+                    $currentPage = intval(substr($pageFileInfo->getFilename(), -8, 4));
+                    $currentDate = substr($pageFileInfo->getFilename(), 4, 10);
+                    if($currentDate < $startDate || ($currentDate == $startDate && $currentPage < $page)) {
+                        continue;
+                    }
+                }
+
+                $pageStart = true;
+                try {
+                    $logFile = create_stream($pageFileInfo->getPath(), 'r');
+                    if($offset > 0) {
+                        $logFile->seek($offset);
+                    }
+
+                    foreach($this->lineIterator($logFile) as $line) {
+                        yield $line;
+                    }
+                }
+                finally {
+                    $offset = 0;
+                    if(isset($logFile))
+                        $logFile->close();
+                }
+
+                $pageIterator->next();
+            }
+
+            $periodIterator->next();
         }
     }
 
@@ -160,7 +192,7 @@ class FileReader2
     {
         $indexFiles = [];
         foreach(new DirectoryIterator($this->config->path) as $fileInfo) {
-            if($fileInfo->isDir() && !$fileInfo->isDot() && is_numeric($fileInfo->getFilename()) && strlen($fileInfo->getFilename()) == 6) {
+            if(!$fileInfo->isDot() && $fileInfo->isDir() && is_numeric($fileInfo->getFilename()) && strlen($fileInfo->getFilename()) == 6) {
                 array_push($indexFiles, $fileInfo->getPath() . '/log.idx');
             }
         }

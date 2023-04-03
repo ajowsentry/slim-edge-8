@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-// defined('ENVIRONMENT') || define('ENVIRONMENT', 'production');
 defined('ENVIRONMENT') || define('ENVIRONMENT', $_SERVER['env'] ?? 'development');
 define('BASEPATH', realpath(__DIR__));
 

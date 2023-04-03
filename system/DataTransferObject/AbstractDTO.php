@@ -8,11 +8,9 @@ use Error;
 use BackedEnum;
 use ReflectionEnum;
 use JsonSerializable;
-use Respect\Validation\Rules;
 use Slim\Routing\RouteContext;
 use Respect\Validation\Validatable;
 use Psr\Http\Message\ServerRequestInterface;
-use Respect\Validation\Rules\AbstractComposite;
 
 abstract class AbstractDTO implements JsonSerializable
 {
@@ -27,6 +25,12 @@ abstract class AbstractDTO implements JsonSerializable
      * @var bool $exposeExpandedProperty
      */
     protected static bool $exposeExpandedProperty = false;
+
+    /**
+     * Deserialize body as JSON when fail, regardless content-type
+     * @var bool $expectJson
+     */
+    protected static bool $expectJson = true;
 
     /**
      * @var ?array<string,mixed> $expandedProperties
@@ -93,8 +97,13 @@ abstract class AbstractDTO implements JsonSerializable
                     }
                 }
                 elseif($fetch->type === FetchType::Body) {
-                    if(!isset($bodyParams))
-                        $bodyParams = (array) $request->getParsedBody();
+                    if(!isset($bodyParams)) {
+                        $parsedBody = $request->getParsedBody();
+                        if(is_null($parsedBody) && static::$expectJson) {
+                            $parsedBody = json_decode((string) $request->getBody(), true);
+                        }
+                        $bodyParams = (array) $parsedBody;
+                    }
 
                     if(array_key_exists($key = $fetch->name ?? $property, $bodyParams)) {
                         $nameReferenceMap[$property] = $key;

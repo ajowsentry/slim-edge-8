@@ -18,10 +18,10 @@ class UserDTO extends AbstractDTO
     public PasswordField $password;
 
     #[FetchBody]
-    public StatusEnum $state;
+    public ?StatusEnum $state = null;
 
     #[FetchBody]
     #[ExposeJson(false)]
     #[TypeOf('int', isCollection: true)]
-    public array $roles;
+    public array $roles = [];
 }

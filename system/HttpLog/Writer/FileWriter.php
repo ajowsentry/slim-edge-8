@@ -30,6 +30,7 @@ class FileWriter extends BaseWriter
                 $numPad = str_pad_left(strval($number), 4, '0');
                 $filePath = "{$directory}/log_{$date}_{$numPad}.log";
             }
+            /** @phpstan-ignore-next-line */
             while(!is_null($maxFileSize) && file_exists($filePath) && filesize($filePath) > $maxFileSize && ++$number);
 
             $payloadStream = create_stream($filePath, 'a');

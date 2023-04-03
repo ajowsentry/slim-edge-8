@@ -18,21 +18,9 @@ final class ValidatorRegistry
     private static bool $autoloadRegistered = false;
 
     /**
-     * @var array<string,Validatable|string|null> $registry
+     * @var array<string,?Validatable> $registry
      */
-    private static array $registry = [
-        'bool'    => Rules\BoolType::class,
-        'boolean' => Rules\BoolType::class,
-        'string'  => Rules\StringType::class,
-        'int'     => Rules\IntType::class,
-        'integer' => Rules\IntType::class,
-        'float'   => Rules\FloatType::class,
-        'double'  => Rules\FloatType::class,
-        'array'   => Rules\ArrayType::class,
-        'object'  => Rules\ObjectType::class,
-        DateTime::class => Rules\DateTime::class,
-        DateTimeInterface::class => Rules\DateTime::class,
-    ];
+    private static array $registry = [ ];
 
     /**
      * @var array<string,string> $definitionRegistry
@@ -67,30 +55,24 @@ final class ValidatorRegistry
     public static function get(string $type): ?Validatable
     {
         if(array_key_exists($type, self::$registry)) {
+            return self::$registry[$type];
+        }
 
-            $validator = self::$registry[$type];
-
-            if($validator instanceof Validatable)
-                return $validator;
-
-            elseif(is_null($validator))
-                return null;
-            
-            else return self::$registry[$type] = new $validator;
+        if(array_key_exists($type, self::$definitionRegistry)) {
+            return self::$registry[$type] = new (self::$definitionRegistry[$type]);
         }
 
         if(is_subclass_of($type, AbstractDTO::class)) {
-            self::registerSplAutoload();
-            $validator = get_cache($type, null, 'validator');
 
-            if(is_null($validator)) {
+            self::registerSplAutoload();
+            if(is_null($validator = get_cache($type, null, 'validator'))) {
                 $validator = self::createDTOValidator($type);
                 set_cache($type, $validator, 'validator');
             }
 
             return self::$registry[$type] = $validator;
         }
-        
+
         return self::$registry[$type] = null;
     }
 
@@ -220,7 +202,7 @@ final class ValidatorRegistry
 
         $script = file_get_contents(__DIR__ . '/CompiledValidator.tpl');
         $script = str_replace('ValidatorNamespace', substr($class, 0, strrpos($class, '\\')), $script);
-        $script = str_replace('ValidatorName', basename($class) . "Validator", $script);
+        $script = str_replace('ValidatorName', trim(substr($class, strrpos($class, '\\')), '\\') . "Validator", $script);
         $script = str_replace("// Implementation", ltrim(shift_indent(join("\n\n", $rules), 12), ' '), $script);
 
         return $script;
