@@ -26,7 +26,7 @@
         "phpfastcache/phpfastcache": "^9.1",
         "hashids/hashids": "^5.0",
         "robinvdvleuten/ulid": "^5.0",
-        "ajowsentry/sqltark": "^0.9.4",
+        "ajowsentry/sqltark": "^0.9.9",
         "firebase/php-jwt": "^6.4",
         "predis/predis": "^2.1"
     },
@@ -34,8 +34,7 @@
         "psr-4": {
             "SlimEdge\\": "system/",
             "App\\": "app/"
-        },
-        "files": ["system/helpers/_autoload.php"]
+        }
     },
     "scripts": {
         "post-update-cmd": "@php cli clear:cache -fs"

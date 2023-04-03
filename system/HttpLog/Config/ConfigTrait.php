@@ -19,7 +19,7 @@ trait ConfigTrait
 
     /**
      * @param array<string,list<string>> $headers
-     * @return array<string,list<string>>
+     * @return array<string,string>
      */
     public function filterHeaders(array $headers): array
     {
@@ -27,9 +27,11 @@ trait ConfigTrait
             ? array_intersect_key($headers, array_flip($this->headers))
             : $headers;
         
-        return !is_null($this->ignoreHeaders)
+        $finalHeaders = !is_null($this->ignoreHeaders)
             ? array_diff_key($newHeaders, array_flip($this->ignoreHeaders))
             : $newHeaders;
+
+        return array_map(fn(array $values) => join(', ', $values), $finalHeaders);
     }
 
     /**

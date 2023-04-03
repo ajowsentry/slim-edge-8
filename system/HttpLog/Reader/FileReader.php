@@ -6,8 +6,8 @@ namespace SlimEdge\HttpLog\Reader;
 
 use DateTime;
 use Generator;
-use Psr\Http\Message\StreamInterface;
 use SlimEdge\HttpLog\Config;
+use Psr\Http\Message\StreamInterface;
 
 class FileReader
 {
@@ -119,7 +119,7 @@ class FileReader
     /**
      * @param DateTime $dateTime
      * @param int $startPage
-     * @return Generator<list<string|int>>
+     * @return Generator<int,list<string|int>,null,void>
      */
     private function getFilePaths(DateTime $dateTime, int $startPage = 0): Generator
     {

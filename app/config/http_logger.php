@@ -1,5 +1,7 @@
 <?php
 
+use SlimEdge\Support\Paths;
+
 return [
     /**
      * Maximum log file size
@@ -9,7 +11,7 @@ return [
     /**
      * Log base path
      */
-    'path' => BASEPATH . '/storage/logs/http',
+    'path' => Paths::Storage . '/logs/http',
 
     /**
      * Log writer class

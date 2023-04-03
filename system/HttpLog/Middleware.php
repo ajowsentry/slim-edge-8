@@ -292,14 +292,15 @@ class Middleware implements MiddlewareInterface
      */
     private function storeAnalyzedStream(StreamAnalyzer $streamAnalyzer): string
     {
-        $fileName = $this->uuidFormat($streamAnalyzer->hash) . '-' . $streamAnalyzer->size;
+        $hash = separate_string($streamAnalyzer->hash, '-', 8, 4, 4, 4);
+        $fileName = $hash . '-' . base_convert(strval($streamAnalyzer->size), 10, 16);
         $path = '/files/' . substr($fileName, 0, 2);
         $directory = $this->config->path . $path;
         if(!file_exists($directory)) {
             mkdir($directory, 0777, true);
         }
 
-        $filePath = "$directory/$fileName";
+        $filePath = "{$directory}/{$fileName}";
         if(!file_exists($filePath)) {
             $streamAnalyzer->stream->rewind();
             try {
@@ -332,21 +333,5 @@ class Middleware implements MiddlewareInterface
         }
 
         return $this->writer ?: null;
-    }
-
-    /**
-     * @param string $value
-     * @return string
-     */
-    private function uuidFormat(string $value): string
-    {
-        // 8-4-4-4-12 => xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        return sprintf("%s-%s-%s-%s-%s",
-            substr($value, 0, 8),
-            substr($value, 8, 4),
-            substr($value, 12, 4),
-            substr($value, 16, 4),
-            substr($value, 20),
-        );
     }
 }

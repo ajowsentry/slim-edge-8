@@ -10,11 +10,11 @@ return [
 
     'enableBodyParsing' => true,
     
-    'enableCache' => ENVIRONMENT !== 'development',
+    'enableCache' => true,//ENVIRONMENT !== 'development',
     'compileContainer' => ENVIRONMENT !== 'development',
 
     'middlewares' => [
-
+        SlimEdge\HttpLog\Middleware::class,
     ],
 
     'alwaysLoadDependencies' => [

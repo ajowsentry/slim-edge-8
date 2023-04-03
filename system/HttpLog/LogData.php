@@ -22,7 +22,7 @@ final class LogData
         $datetime = new \DateTime();
         $this->data['type'] = $type;
 
-        $this->append('timestamp', $datetime->getTimestamp() * 1000 + $datetime->format('v'));
+        $this->append('timestamp', get_timestamp($datetime));
         $this->append('datetime', $datetime->format(DateTime::RFC3339_EXTENDED));
         $this->appendAll($payload);
     }
@@ -54,7 +54,7 @@ final class LogData
      */
     public function finish(): array
     {
-        $this->data['hash'] = ulid_generate();
+        $this->data['hash'] = separate_string(ulid_generate(true), '-', 6, 4, 4, 4);
         return $this->data;
     }
 }

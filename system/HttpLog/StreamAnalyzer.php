@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace SlimEdge\HttpLog;
+
 use Psr\Http\Message\StreamInterface;
 
 /**
@@ -28,7 +29,7 @@ final class StreamAnalyzer
     /**
      * @var bool $isBinary
      */
-    public bool $isBinary;
+    public bool $isBinary = false;
 
     public function __construct(StreamInterface $stream)
     {

@@ -108,3 +108,20 @@ if (!function_exists('next_period')) {
         return period_add($period, $value);
     }
 }
+
+if (!function_exists('get_timestamp')) {
+
+    /**
+     * Get UNIX timestamp from date
+     * @param string|DateTime $date
+     * @return int
+     */
+    function get_timestamp(string|DateTime $date = 'now'): int
+    {
+        if(is_string($date)) {
+            $date = new DateTime($date);
+        }
+
+        return $date->getTimestamp() * 1000 + $date->format('v');
+    }
+}

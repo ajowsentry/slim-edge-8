@@ -178,6 +178,31 @@ if(! function_exists('remove_invisible_characters'))
     }
 }
 
+if(! function_exists('separate_string'))
+{
+    /**
+     * @param string $string
+     * @param string $separator
+     * @param int ...$segments
+     * @return string Removed invisible characters
+     */
+    function separate_string(string $string, string $separator, int ...$segments): string
+    {
+        $result = '';
+        $offset = 0;
+
+        foreach($segments as $segment) {
+            $result .= substr($string, $offset, $segment) . $separator;
+            $offset += $segment;
+        }
+
+        $remaining = substr($string, $offset);
+        return empty($remaining)
+            ? substr($result, 0, -strlen($separator))
+            : ($result . $remaining);
+    }
+}
+
 if(! function_exists('escape_php_string')) {
     function escape_php_string(string $string): string
     {
