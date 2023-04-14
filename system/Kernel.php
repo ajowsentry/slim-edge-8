@@ -75,7 +75,9 @@ class Kernel
             throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
         });
 
+        self::normalizeRequestURI();
         self::loadHelpers();
+        self::normalizeRequestPath();
 
         $config = static::getContainer()->get('config');
         date_default_timezone_set($config['timezone'] ?? 'UTC');
@@ -123,6 +125,31 @@ class Kernel
                     load_helper($key);
                 }
             }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private static function normalizeRequestURI(): void
+    {
+        if(isset($_SERVER['REQUEST_URI'])) {
+            while(false !== strpos($_SERVER['REQUEST_URI'], '//')) {
+                $_SERVER['REQUEST_URI'] = str_replace('//', '/', $_SERVER['REQUEST_URI']);
+            }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private static function normalizeRequestPath(): void
+    {
+        if(isset($_SERVER['REQUEST_URI'])) {
+            $requestURI = $_SERVER['REQUEST_URI'];
+            $basePath = get_base_path();
+            $path = trim(substr($requestURI, strlen($basePath)), '/');
+            $_SERVER['REQUEST_URI'] = $basePath . '/' . $path;
         }
     }
 }

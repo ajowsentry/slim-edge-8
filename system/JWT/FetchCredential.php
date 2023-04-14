@@ -13,6 +13,11 @@ use Slim\Exception\HttpUnauthorizedException;
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class FetchCredential extends RequireCredential
 {
+    /**
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @return ResponseInterface
+     */
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler

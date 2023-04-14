@@ -15,8 +15,14 @@ use Slim\Exception\HttpUnauthorizedException;
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class RequireCredential implements MiddlewareInterface
 {
+    /**
+     * @var Decoder $decoder
+     */
     protected Decoder $decoder;
-
+    
+    /**
+     * @var Config
+     */
     protected Config $config;
 
     /**
@@ -28,6 +34,11 @@ class RequireCredential implements MiddlewareInterface
         $this->config = $config instanceof Config ? $config : new Config($config);
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @return ResponseInterface
+     */
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler)
@@ -53,6 +64,10 @@ class RequireCredential implements MiddlewareInterface
         }
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @return string|null
+     */
     public function fetchToken(ServerRequestInterface $request): ?string
     {
         $header = $request->getHeaderLine($this->config->getHeader());

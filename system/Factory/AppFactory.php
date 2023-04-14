@@ -85,10 +85,7 @@ final class AppFactory
             $this->app->add($middleware);
         }
 
-        if($this->config['enableBodyParsing'] ?? true) {
-            $this->app->addBodyParsingMiddleware();
-        }
-
+        $this->app->addBodyParsingMiddleware();
 
         if($this->config['addContentLength'] ?? false) {
             $this->app->add(ContentLengthMiddleware::class);

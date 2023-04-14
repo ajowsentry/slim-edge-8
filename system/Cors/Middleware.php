@@ -17,6 +17,11 @@ class Middleware implements MiddlewareInterface
     private Config $config;
 
     /**
+     * @var bool $handled
+     */
+    private static bool $handled = false;
+
+    /**
      * @param array<string,mixed>|Config $config
      */
     public function __construct(array|Config $config)
@@ -31,11 +36,13 @@ class Middleware implements MiddlewareInterface
     {
         $response = $handler->handle($request);
 
-        if($this->config->forRequest($request)->enabled) {
+        if(!static::$handled && $this->config->forRequest($request)->enabled) {
             $analyzer = new Analyzer($this->config, $request);
             $corsHeaders = $analyzer->analyze();
             foreach($corsHeaders as $key => $value)
                 $response = $response->withHeader($key, $value);
+            
+            static::$handled = true;
         }
 
         return $response;

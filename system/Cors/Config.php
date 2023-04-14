@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Slim\Routing\RouteContext;
 use SlimEdge\Exceptions\ConfigException;
 use Psr\Http\Message\ServerRequestInterface;
+use RuntimeException;
 
 class Config
 {
@@ -70,13 +71,18 @@ class Config
     public function forRequest(ServerRequestInterface $request): Config
     {
         if(!is_null($this->routes)) {
-            $route = RouteContext::fromRequest($request)->getRoute();
+            try {
+                $route = RouteContext::fromRequest($request)->getRoute();
 
-            if(is_null($route))
-                throw new InvalidArgumentException("Could not find route from request.");
+                if(is_null($route))
+                    throw new InvalidArgumentException("Could not find route from request.");
 
-            $routeName = $route->getName();
-            return $this->routes[$routeName] ?? $this;
+                if(array_key_exists($route->getName(), $this->routes))
+                    return $this->routes[$route->getName()];
+            }
+            catch(RuntimeException) {
+                /** @ignore */
+            }
         }
 
         return $this;

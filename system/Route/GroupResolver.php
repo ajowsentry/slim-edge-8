@@ -22,6 +22,10 @@ class GroupResolver
         $this->childRoutes = $routes;
     }
 
+    /**
+     * @param RouteCollectorProxy|RouteGroupInterface $routeCollector
+     * @return void
+     */
     public function __invoke(RouteCollectorProxy|RouteGroupInterface $routeCollector): void
     {
         foreach($this->childRoutes as $routeDefiner) {

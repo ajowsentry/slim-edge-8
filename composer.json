@@ -1,12 +1,16 @@
 {
-    "name": "tirta-asasta/api-integration",
-    "description": "API Integration",
+    "name": "ajowsentry/slim-edge-8",
+    "description": "Slim 4 Framework Boilerplate (PHP 8.2+)",
     "type": "project",
     "license": "MIT",
     "authors": [
         {
             "name": "Dennis Arfan",
             "email": "dennisarfan@gmail.com"
+        },
+        {
+            "name": "Ajo W Sentry",
+            "email": "ajowsentry@gmail.com"
         }
     ],
     "require-dev": {
@@ -14,7 +18,7 @@
         "phpunit/phpunit": "^10.0"
     },
     "require": {
-        "php": ">=8.2.2",
+        "php": ">=8.2",
         "slim/slim": "^4.11",
         "php-di/php-di": "^7.0",
         "php-di/slim-bridge": "^3.3",
@@ -26,8 +30,8 @@
         "phpfastcache/phpfastcache": "^9.1",
         "hashids/hashids": "^5.0",
         "robinvdvleuten/ulid": "^5.0",
-        "ajowsentry/sqltark": "^0.9.9",
         "firebase/php-jwt": "^6.4",
+        "ajowsentry/sqltark": "^0.9.9",
         "predis/predis": "^2.1"
     },
     "autoload": {

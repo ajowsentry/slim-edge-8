@@ -18,9 +18,21 @@ final class ValidatorRegistry
     private static bool $autoloadRegistered = false;
 
     /**
-     * @var array<string,?Validatable> $registry
+     * @var array<string,Validatable|string|null> $registry
      */
-    private static array $registry = [ ];
+    private static array $registry = [
+        'bool'    => Rules\BoolType::class,
+        'boolean' => Rules\BoolType::class,
+        'string'  => Rules\StringType::class,
+        'int'     => Rules\IntType::class,
+        'integer' => Rules\IntType::class,
+        'float'   => Rules\FloatType::class,
+        'double'  => Rules\FloatType::class,
+        'array'   => Rules\ArrayType::class,
+        'object'  => Rules\ObjectType::class,
+        DateTime::class => Rules\DateTime::class,
+        DateTimeInterface::class => Rules\DateTime::class,
+    ];
 
     /**
      * @var array<string,string> $definitionRegistry
@@ -55,24 +67,30 @@ final class ValidatorRegistry
     public static function get(string $type): ?Validatable
     {
         if(array_key_exists($type, self::$registry)) {
-            return self::$registry[$type];
-        }
 
-        if(array_key_exists($type, self::$definitionRegistry)) {
-            return self::$registry[$type] = new (self::$definitionRegistry[$type]);
+            $validator = self::$registry[$type];
+
+            if($validator instanceof Validatable)
+                return $validator;
+
+            elseif(is_null($validator))
+                return null;
+            
+            else return self::$registry[$type] = new $validator;
         }
 
         if(is_subclass_of($type, AbstractDTO::class)) {
-
             self::registerSplAutoload();
-            if(is_null($validator = get_cache($type, null, 'validator'))) {
+            $validator = get_cache($type, null, 'validator');
+
+            if(is_null($validator)) {
                 $validator = self::createDTOValidator($type);
                 set_cache($type, $validator, 'validator');
             }
 
             return self::$registry[$type] = $validator;
         }
-
+        
         return self::$registry[$type] = null;
     }
 
@@ -152,13 +170,19 @@ final class ValidatorRegistry
                 array_push($fieldRules, "new \\{$metadata->type}Validator");
 
             $rule = null;
+
+            if(!$metadata->isNullable) {
+                array_unshift($fieldRules, "new Rules\NotOptional");
+            }
+
             if(count($fieldRules) > 0) {
+
                 if(count($fieldRules) == 1) {
                     $rule = $fieldRules[0];
                 }
                 else {
                     $rule = "new Rules\AllOf(\n"
-                        . join("", array_map(fn($item) => "    {$item},\n", $fieldRules))
+                        . join("", array_map(function($item) { return "    {$item},\n"; }, $fieldRules))
                         . ")";
                 }
 

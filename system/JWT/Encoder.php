@@ -75,15 +75,7 @@ class Encoder
     protected function generateID(): string
     {
         $ulid = strval(Ulid::generate(true));
-
-        // 6-4-4-4-8 => xxxxxx-xxxx-xxxx-xxxx-xxxxxxxx
-        return sprintf("%s-%s-%s-%s-%s",
-            substr($ulid, 0, 6),
-            substr($ulid, 6, 4),
-            substr($ulid, 10, 4),
-            substr($ulid, 14, 4),
-            substr($ulid, 18, 8),
-        );
+        return separate_string($ulid, '-', 6, 4, 4, 4);
     }
 
     /**

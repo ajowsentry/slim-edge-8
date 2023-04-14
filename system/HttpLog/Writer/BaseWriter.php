@@ -11,7 +11,7 @@ abstract class BaseWriter
     /**
      * @var Config $config
      */
-    protected $config;
+    protected Config $config;
 
     public function __construct(Config $config)
     {

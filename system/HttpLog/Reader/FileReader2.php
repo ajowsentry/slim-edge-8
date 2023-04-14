@@ -188,6 +188,10 @@ class FileReader2
         }
     }
 
+    /**
+     * @param int $timestamp
+     * @return string|false
+     */
     private function findIndexFile(int $timestamp): string|false
     {
         $indexFiles = [];

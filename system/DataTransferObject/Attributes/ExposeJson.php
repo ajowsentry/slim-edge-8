@@ -6,7 +6,7 @@ namespace SlimEdge\DataTransferObject\Attributes;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_PROPERTY|Attribute::TARGET_METHOD)]
+#[Attribute(Attribute::TARGET_PROPERTY)]
 final class ExposeJson
 {
     /**

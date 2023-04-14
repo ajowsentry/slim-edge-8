@@ -7,7 +7,6 @@ namespace SlimEdge\JWT;
 class KeySource
 {
     /**
-     * @readonly
      * @var string $source
      */
     public readonly string $source;

@@ -218,6 +218,6 @@ if(! function_exists('shift_indent')) {
     function shift_indent(string $string, int $spaceCount = 4): string
     {
         $spaces = str_repeat(' ', $spaceCount);
-        return trim($spaces . str_replace("\n", "\n{$spaces}", $string), ' ');
+        return rtrim($spaces . str_replace("\n", "\n{$spaces}", $string), ' ');
     }
 }
