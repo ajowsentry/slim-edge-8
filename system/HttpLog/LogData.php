@@ -19,7 +19,7 @@ final class LogData
      */
     public function __construct(string $type, array $payload = [])
     {
-        $datetime = new \DateTime();
+        $datetime = new DateTime();
         $this->data['type'] = $type;
 
         $this->append('timestamp', get_timestamp($datetime));

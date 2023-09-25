@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SlimEdge\HttpLog\Writer;
 
 use DateTime;
+use DirectoryIterator;
 use Exception;
 use DateTimeZone;
 
@@ -53,6 +54,34 @@ class FileWriter extends BaseWriter
 
             if(isset($indexStream))
                 $indexStream->close();
+        }
+    }
+
+    public function deleteOldLogs(): void {
+        if(is_null($this->config->maxDays))
+            return;
+        
+        $maxDays = $this->config->maxDays;
+        $date = new DateTime("-{$maxDays} days");
+        $period = $date->format('Ym');
+        $baseDir = $this->config->path;
+
+        foreach(new DirectoryIterator($baseDir) as $dir) {
+            if($dir->isDir() && !$dir->isDot()) {
+                if($dir->getFilename() < $period)
+                    delete_dir($dir->getRealPath());
+
+                elseif($dir->getFilename() > $period)
+                    break;
+            }
+            elseif(!$dir->isDir())
+                break;
+        }
+
+        foreach(glob($baseDir . '/' . $period . '/log_*.log') as $log) {
+            $logDate = substr(basename($log), 4, 10);
+            if($logDate <= $date)
+                @unlink($log);
         }
     }
 }

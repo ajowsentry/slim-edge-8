@@ -84,10 +84,11 @@ class Analyzer
             $requestOrigin = $this->request->getHeaderLine(self::OriginHeader);
             $origin = (string) $this->request->getUri()->withPath('');
             $allowOrigins = $this->config->allowOrigins;
-            if(in_array($origin, $allowOrigins)) {
+
+            if(in_array($requestOrigin, $allowOrigins)) {
                 $result = $requestOrigin;
             }
-            elseif(count($allowOrigins) > 0 && $allowOrigins[0] === '*' && !$this->hasCredentials()) {
+            elseif(in_array('*', $allowOrigins) && !$this->hasCredentials()) {
                 $result = '*';
             }
             else {

@@ -6,6 +6,7 @@ namespace SlimEdge\Factory;
 
 use Slim\App;
 use SlimEdge\Cors;
+use SlimEdge\HttpLog;
 use DI\Bridge\Slim;
 use SlimEdge\Route;
 use SlimEdge\Support\Paths;
@@ -14,6 +15,7 @@ use Slim\Exception\HttpException;
 use Psr\Container\ContainerInterface;
 use SlimEdge\ErrorHandlers\HttpHandler;
 use Slim\Middleware\ContentLengthMiddleware;
+use SlimEdge\ErrorHandlers\Renderer\JsonErrorRenderer;
 
 final class AppFactory
 {
@@ -94,6 +96,8 @@ final class AppFactory
         $this->app->add(Cors\Middleware::class);
         $this->app->addRoutingMiddleware();
         $this->registerErrorHandler();
+        $this->app->add(Cors\Middleware::class);
+        $this->app->add(HttpLog\Middleware::class);
 
         return $this;
     }
@@ -110,6 +114,9 @@ final class AppFactory
                 $config['logErrors'] ?? false,
                 $config['logErrorDetails'] ?? false
             );
+
+            $middleware->getDefaultErrorHandler()
+                ->registerErrorRenderer('application/json', JsonErrorRenderer::class);
 
             $middleware->setErrorHandler(HttpException::class, HttpHandler::class, true);
 

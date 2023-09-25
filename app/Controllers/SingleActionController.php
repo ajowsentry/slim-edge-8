@@ -13,6 +13,7 @@ class SingleActionController
 {
     public function __invoke(): ResponseInterface
     {
+        throw new \RuntimeException;
         return new Response\TextResponse("Hello World from single action controller");
     }
 }

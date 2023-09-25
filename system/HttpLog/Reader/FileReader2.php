@@ -61,11 +61,13 @@ class FileReader2
     {
         $timestamp = get_timestamp($fromDate);
         $indexPath = $this->findIndexFile($timestamp);
-        if(false === $indexPath) {
+        if(false === $indexPath)
             return; // Date out of range
-        }
 
         $indexFile = fopen($indexPath, 'r');
+        if(false === $indexFile)
+            return;
+
         fseek($indexFile, 0, SEEK_END);
 
         $left = 0;

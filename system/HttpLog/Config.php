@@ -17,6 +17,11 @@ class Config
     public ?int $maxFileSize;
 
     /**
+     * @var ?int $maxDays
+     */
+    public ?int $maxDays;
+
+    /**
      * @var ?string $path
      */
     public ?string $path;
@@ -74,6 +79,23 @@ class Config
 
             if($resolved < 0) {
                 throw new ConfigException("Invalid value for 'maxFileSize' in HttpLog config. Value must be positive integer.");
+            }
+
+            $this->maxFileSize = $resolved;
+        }
+
+        if(isset($config['maxDays'])) {
+            $raw = $config['maxDays'];
+            if(is_int($raw) || is_float($raw) || is_string($raw)) {
+                $resolved = intval($raw);
+            }
+            else {
+                $type = typeof($raw);
+                throw new ConfigException("Could not resolve {$type} for 'maxDays' value in HttpLog config.");
+            }
+
+            if($resolved < 1) {
+                throw new ConfigException("Invalid value for 'maxDays' in HttpLog config. Value must be positive integer.");
             }
 
             $this->maxFileSize = $resolved;
@@ -145,7 +167,7 @@ class Config
      */
     public function forRequest(ServerRequestInterface $request): Config
     {
-        if(!is_null($this->routes)) {
+        if(!is_null($this->routes) && $request->getAttribute(RouteContext::ROUTING_RESULTS, false)) {
             $routeName = RouteContext::fromRequest($request)->getRoute()->getName();
             return $this->routes[$routeName] ?? $this;
         }

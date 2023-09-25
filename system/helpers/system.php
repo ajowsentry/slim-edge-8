@@ -155,3 +155,21 @@ if(! function_exists('rglob')) {
         return $files;
     }
 }
+
+if(! function_exists('delete_dir')) {
+
+    function delete_dir($path): bool {
+        if(!is_dir($path))
+            return false;
+        
+        if(!str_ends_with($path, '/') && !str_ends_with($path, '\\'))
+            $path .= '/';
+        
+        foreach(glob($path . '*', GLOB_MARK) as $file) {
+            if(is_dir($file)) delete_dir($file);
+            else unlink($file);
+        }
+
+        return rmdir($path);
+    }
+}

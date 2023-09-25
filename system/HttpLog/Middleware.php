@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SlimEdge\HttpLog;
 
 use Exception;
+use Laminas\Diactoros\Response\JsonResponse;
 use Slim\Routing\RouteContext;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -25,11 +26,13 @@ class Middleware implements MiddlewareInterface
 
     protected const ContextUploadedFiles = 8;
 
-    protected const BodyContent = 0;
+    protected const BodyIgnored = 0;
 
-    protected const BodyIgnored = 1;
+    protected const BodyContent = 1;
 
     protected const BodyToFile = 2;
+
+    protected const BodyParsed = 3;
 
     /**
      * @var ?string $requestHash
@@ -88,13 +91,15 @@ class Middleware implements MiddlewareInterface
 
         $config = $this->config->logRequest;
 
-        $route = RouteContext::fromRequest($request)->getRoute();
-        if(!$config->checkRoute($route))
-            return;
+        if($request->getAttribute(RouteContext::ROUTING_RESULTS, false)) {
+            $route = RouteContext::fromRequest($request)->getRoute();
+            if(!$config->checkRoute($route))
+                return;
 
-        $routeConfig = $this->config->getConfigForRoute($route, 'logRequest');
-        if(!is_null($routeConfig))
-            $config->override($routeConfig);
+            $routeConfig = $this->config->getConfigForRoute($route, 'logRequest');
+            if(!is_null($routeConfig))
+                $config->override($routeConfig);
+        }
 
         if(!$config->checkMethod($request->getMethod()))
             return;
@@ -106,7 +111,7 @@ class Middleware implements MiddlewareInterface
             'ipAddress' => get_ip_address(),
             'url'       => (string) $request->getUri(),
             'headers'   => $config->filterHeaders($request->getHeaders()),
-            'bodySize'  => $streamAnalyzer->size,
+            // 'bodySize'  => $streamAnalyzer->size,
         ]);
 
         $bodyContext = self::BodyContent;
@@ -123,41 +128,69 @@ class Middleware implements MiddlewareInterface
         }
 
         if($config->logQuery) {
-            $logContext |= self::ContextQuery;
             $queryParams = $request->getQueryParams();
+
+            if(!empty($queryParams))
+                $logContext |= self::ContextQuery;
         }
 
         if($config->logFormData) {
-            $logContext |= self::ContextFormData;
             $formData = $request->getParsedBody();
+
+            if(!empty($formData)) {
+                $bodyContext = self::BodyParsed;
+                $logContext |= self::ContextFormData;
+            }
         }
 
         if($config->logBody) {
-            $logContext |= self::ContextBody;
+
             switch($bodyContext) {
-                case self::BodyIgnored: break;
+                case self::BodyIgnored:
+                case self::BodyParsed:
+                    break;
 
                 case self::BodyToFile:
                 $body = $this->storeAnalyzedStream($streamAnalyzer);
+                $logContext |= self::ContextBody;
                 break;
 
                 default:
                 $body = (string) $request->getBody();
+                if(!empty($body))
+                    $logContext |= self::ContextBody;
                 break;
             }
         }
 
         if($config->logUploadedFiles) {
-            $logContext |= self::ContextUploadedFiles;
-            $uploadedFiles = $this->processUploadedFiles($request->getUploadedFiles());
+            $_uploadedFiles = $request->getUploadedFiles();
+            if(!empty($_uploadedFiles)) {
+                $logContext |= self::ContextUploadedFiles;
+                $uploadedFiles = $this->processUploadedFiles($_uploadedFiles);
+            }
         }
 
-        $logData->append('bodyContext', $bodyContext);
         $logData->append('logContext', $logContext);
-        $logData->append('queryParams', $queryParams);
-        $logData->append('formData', $formData);
-        $logData->append('body', $body);
-        $logData->append('uploadedFiles', $uploadedFiles);
+        if($logContext & self::ContextBody) {
+            $logData->append('bodyContext', $bodyContext);
+            $logData->append('bodySize', $streamAnalyzer->size);
+            $logData->append('body', $body);
+        }
+
+        if($logContext & self::ContextQuery) {
+            $logData->append('queryParams', $queryParams);
+        }
+
+        if($logContext & self::ContextFormData) {
+            $logData->append('bodyContext', $bodyContext);
+            $logData->append('bodySize', $streamAnalyzer->size);
+            $logData->append('formData', $formData);
+        }
+
+        if($logContext & self::ContextUploadedFiles) {
+            $logData->append('uploadedFiles', $uploadedFiles);
+        }
 
         $logOption = $logData->finish();
         static::$requestHash = $logOption['hash'];
@@ -178,14 +211,16 @@ class Middleware implements MiddlewareInterface
 
         $config = $this->config->logResponse;
 
-        $route = RouteContext::fromRequest($request)->getRoute();
-        if(!$this->config->logRequest->checkRoute($route) || !$config->checkRoute($route)) {
-            return;
-        }
+        if($request->getAttribute(RouteContext::ROUTING_RESULTS, false)) {
+            $route = RouteContext::fromRequest($request)->getRoute();
+            if(!$this->config->logRequest->checkRoute($route) || !$config->checkRoute($route)) {
+                return;
+            }
 
-        $routeConfig = $this->config->getConfigForRoute($route, 'logResponse');
-        if($routeConfig) {
-            $config->override($routeConfig);
+            $routeConfig = $this->config->getConfigForRoute($route, 'logResponse');
+            if($routeConfig) {
+                $config->override($routeConfig);
+            }
         }
 
         if(!$config->checkStatusCode($response->getStatusCode())) {
@@ -227,8 +262,14 @@ class Middleware implements MiddlewareInterface
         }
         else $bodyContext = self::BodyIgnored;
 
-        $logData->append('bodyContext', $bodyContext);
-        $logData->append('body', $body);
+        if($response instanceof JsonResponse) {
+            $logData->append('bodyContext', self::BodyParsed);
+            $logData->append('body', $response->getPayload());
+        }
+        else {
+            $logData->append('bodyContext', $bodyContext);
+            $logData->append('body', $body);
+        }
 
         $logOption = $logData->finish();
         $writer->writeLog($logOption);
@@ -248,7 +289,7 @@ class Middleware implements MiddlewareInterface
             'errorClass'   => get_class($ex),
             'errorCode'    => $ex->getCode(),
             'errorMessage' => $ex->getMessage(),
-            'errorFile'    => $ex->getFile(),
+            'errorFile'    => substr($ex->getFile(), strlen(BASEPATH)),
             'errorLine'    => $ex->getLine(),
         ]);
 

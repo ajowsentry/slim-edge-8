@@ -9,6 +9,11 @@ return [
     'maxFileSize' => 5000000,
 
     /**
+     * Maximum log to keep by days
+     */
+    'maxDay' => 30,
+
+    /**
      * Log base path
      */
     'path' => Paths::Storage . '/logs/http',
@@ -96,4 +101,6 @@ return [
          */
         'ignoreRoutes' => ['readLog'],
     ],
+
+    'logErrors' => true,
 ];
