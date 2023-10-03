@@ -36,7 +36,7 @@ class FileWriter extends BaseWriter
 
             $payloadStream = create_stream($filePath, 'a');
             $startPosition = $payloadStream->tell();
-            $payloadStream->write(json_encode($logData) . ',' . PHP_EOL);
+            $payloadStream->write(json_encode($logData, JSON_UNESCAPED_SLASHES) . ',' . PHP_EOL);
 
             $filePath = "{$directory}/log.idx";
             $indexData = pack('PvP', $logData['timestamp'], $number, $startPosition);            

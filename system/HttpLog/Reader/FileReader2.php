@@ -54,12 +54,13 @@ class FileReader2
     }
 
     /**
-     * @param string $fromDate Date string
+     * @param string|int $fromDate Date string
+     * @param int $rowOffset Row offset
      * @return Generator<int,string,null,void>
      */
-    public function query(string $fromDate): Generator
+    public function query(string|int $fromDate, $rowOffset = 0): Generator
     {
-        $timestamp = get_timestamp($fromDate);
+        $timestamp = is_int($fromDate) ? $fromDate : get_timestamp($fromDate);
         $indexPath = $this->findIndexFile($timestamp);
         if(false === $indexPath)
             return; // Date out of range
@@ -92,11 +93,57 @@ class FileReader2
 
         fseek($indexFile, 18 * $mid);
         $metadata = fread($indexFile, 18);
-        [, $startTs, $page, $offset] = unpack('P/v/P', $metadata);
 
+        /**
+         * @var int $startTs
+         * @var int $page
+         * @var int $offset
+         */
+        extract(unpack('PstartTs/vpage/Poffset', $metadata));
+        $startTs /= 1000;
         $dateTime = new DateTime("@{$startTs}");
-        foreach($this->iterateJson($dateTime, $page, $offset) as $json) {
+        foreach($this->iterateJson2($dateTime, $page, $offset) as $json) {
             yield $json;
+        }
+    }
+
+    /**
+     * @param DateTime $dateTime
+     * @param int $page
+     * @param int $offset
+     * 
+     * @return Generator<int,string,null,void>
+     */
+    public function iterateJson2(DateTime $dateTime, int $page = 0, int $offset = 0): Generator
+    {
+        $dateTime = $dateTime->setTimezone(new DateTimeZone('UTC'));
+        $startPeriod = $dateTime->format('Ym');
+        $startDate = $dateTime->format('Y-m-d');
+
+        foreach($this->iteratePeriodFolder($startPeriod) as $folder) {
+            if($startPeriod != basename($folder))
+                $page = 0;
+
+            foreach($this->iteratePageFile($folder, $startDate, $page) as $file) {
+                if(substr(basename($file), 4, 10) != $startDate)
+                    $offset = 0;
+
+                try {
+                    $logFile = create_stream($file, 'r');
+                    if($offset > 0) {
+                        $logFile->seek($offset);
+                    }
+
+                    foreach($this->lineIterator($logFile) as $line) {
+                        yield $line;
+                    }
+                }
+                finally {
+                    $offset = 0;
+                    if(isset($logFile))
+                        $logFile->close();
+                }
+            }
         }
     }
 
@@ -113,55 +160,62 @@ class FileReader2
 
         $startPeriod = $dateTime->format('Ym');
         $startDate = $dateTime->format('Y-m-d');
+
+        // Find nearest period folder
+        $periodFound = false;
         $periodIterator = new DirectoryIterator($this->config->path);
         while(($periodFileInfo = $periodIterator->current())->valid()) {
-            if($periodFileInfo->isDot()) {
-                continue;
-            }
-
-            if($periodFileInfo->getFilename() == $startPeriod) {
+            if($periodFileInfo->isDir() && !$periodFileInfo->isDot() && $periodFileInfo->getFilename() == $startPeriod) {
+                $periodFound = true;
                 break;
             }
 
             $periodIterator->next();
         }
 
+        if(!$periodFound) {
+            $page = 0;
+        }
+        
         $startPage = str_pad_left(strval($page), 4, '0');
-        $pageIterator = new DirectoryIterator($periodFileInfo->getPath());
+        $pageIterator = new DirectoryIterator($periodFileInfo->getRealPath());
+
+        // Find nearest page file
+        $pageFound = false;
         while(($pageFileInfo = $pageIterator->current())->valid()) {
-            if($pageFileInfo->isDot()) {
-                continue;
-            }
-
-            if($pageFileInfo->getExtension() === 'idx') {
-                $pageIterator->seek(intval($pageIterator->key()) - 1);
-                break;
-            }
-
-            $page = substr($pageFileInfo->getFilename(), -8, 4);
-            if($page == $startPage) {
-                break;
+            if($pageFileInfo->isFile() && $pageFileInfo->getExtension() == 'log') {
+                $page = substr($pageFileInfo->getFilename(), -8, 4);
+                if($page == $startPage) {
+                    $pageFound = true;
+                    break;
+                }
             }
 
             $pageIterator->next();
         }
 
-        while(($periodFileInfo = $periodIterator->current())->valid()) {
-            if($periodFileInfo->getFilename() == $startPeriod) {
-                break;
-            }
+        if(!$pageFound) {
+            $offset = 0;
+        }
 
-            $pageIterator = new DirectoryIterator($periodFileInfo->getPath());
+        while(($periodFileInfo = $periodIterator->current())->valid()) {
+            // if($periodFileInfo->getFilename() == $startPeriod) {
+            //     break;
+            // }
+
+            $pageIterator = new DirectoryIterator($periodFileInfo->getRealPath());
             $pageStart = false;
             while(($pageFileInfo = $pageIterator->current())->valid()) {
-                if($pageFileInfo->getExtension() === 'idx') {
-                    break;
+                if(!$pageFileInfo->isFile() || $pageFileInfo->getExtension() !== 'log') {
+                    $pageIterator->next();
+                    continue;
                 }
 
                 if(!$pageStart) {
                     $currentPage = intval(substr($pageFileInfo->getFilename(), -8, 4));
                     $currentDate = substr($pageFileInfo->getFilename(), 4, 10);
                     if($currentDate < $startDate || ($currentDate == $startDate && $currentPage < $page)) {
+                        $pageIterator->next();
                         continue;
                     }
                 }
@@ -191,6 +245,53 @@ class FileReader2
     }
 
     /**
+     * @param string $startPeriod
+     */
+    private function iteratePeriodFolder($startPeriod)
+    {
+        $periodFound = false;
+        $periodIterator = new DirectoryIterator($this->config->path);
+        while(($periodFileInfo = $periodIterator->current())->valid()) {
+            if($periodFileInfo->isDir() && !$periodFileInfo->isDot()) {
+                if(!$periodFound && $periodFileInfo->getFilename() >= $startPeriod) {
+                    $periodFound = true;
+                }
+
+                if($periodFound) {
+                    yield $periodFileInfo->getRealPath();
+                }
+            }
+
+            $periodIterator->next();
+        }
+    }
+
+    /**
+     * @param string $periodFolder
+     * @param string $dateString
+     * @param int $page
+     */
+    private function iteratePageFile($periodFolder, $dateString, $page)
+    {
+        $pageFound = false;
+        $startPage = "log_{$dateString}_" . str_pad_left(strval($page), 4, '0') . '.log';
+        $pageIterator = new DirectoryIterator($periodFolder);
+        while(($pageFileInfo = $pageIterator->current())->valid()) {
+            if($pageFileInfo->isFile() && $pageFileInfo->getExtension() == 'log') {
+                if(!$pageFound && $pageFileInfo->getFilename() >= $startPage) {
+                    $pageFound = true;
+                }
+
+                if($pageFound) {
+                    yield $pageFileInfo->getRealPath();
+                }
+            }
+
+            $pageIterator->next();
+        }
+    }
+
+    /**
      * @param int $timestamp
      * @return string|false
      */
@@ -199,7 +300,7 @@ class FileReader2
         $indexFiles = [];
         foreach(new DirectoryIterator($this->config->path) as $fileInfo) {
             if(!$fileInfo->isDot() && $fileInfo->isDir() && is_numeric($fileInfo->getFilename()) && strlen($fileInfo->getFilename()) == 6) {
-                array_push($indexFiles, $fileInfo->getPath() . '/log.idx');
+                array_push($indexFiles, $fileInfo->getRealPath() . '/log.idx');
             }
         }
 

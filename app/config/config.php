@@ -16,6 +16,8 @@ return [
     'enableCache' => false,
     'compileContainer' => false,
 
+    'enableHttpLog' => true,
+
     'middlewares' => [
         // SlimEdge\HttpLog\Middleware::class,
     ],

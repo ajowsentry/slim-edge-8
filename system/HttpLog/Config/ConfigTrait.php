@@ -70,7 +70,16 @@ trait ConfigTrait
             return false;
         }
 
+        if(!is_null($this->ignoreRoutes) && in_array($routeName, $this->ignoreRoutes)) {
+            return false;
+        }
+
         return true;
+    }
+
+    public function checkPath(string $path)
+    {
+        return is_null($this->ignoreRoutes) || !in_array($path, $this->ignoreRoutes);
     }
 
     /**

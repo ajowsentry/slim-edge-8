@@ -188,4 +188,18 @@ class Config
 
         return null;
     }
+
+    /**
+     * @param string $route
+     * @param string $key
+     * @return ?array<string,mixed>
+     */
+    public function getConfigForPath(string $path, string $key): ?array
+    {
+        if(!empty($path) && is_array($this->routes))
+            if(isset($this->routes[$path][$key]))
+                return $this->routes[$path][$key];
+
+        return null;
+    }
 }

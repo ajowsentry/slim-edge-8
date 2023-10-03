@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace SlimEdge\HttpLog;
 
 use Exception;
-use Laminas\Diactoros\Response\JsonResponse;
-use Slim\Routing\RouteContext;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Message\UploadedFileInterface;
+use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -90,16 +89,14 @@ class Middleware implements MiddlewareInterface
             return;
 
         $config = $this->config->logRequest;
+        $path = substr($request->getUri()->getPath(), strlen(get_base_path()));
 
-        if($request->getAttribute(RouteContext::ROUTING_RESULTS, false)) {
-            $route = RouteContext::fromRequest($request)->getRoute();
-            if(!$config->checkRoute($route))
-                return;
+        if(!$config->checkPath($path))
+            return;
 
-            $routeConfig = $this->config->getConfigForRoute($route, 'logRequest');
-            if(!is_null($routeConfig))
-                $config->override($routeConfig);
-        }
+        $routeConfig = $this->config->getConfigForPath($path, 'logRequest');
+        if(!is_null($routeConfig))
+            $config->override($routeConfig);
 
         if(!$config->checkMethod($request->getMethod()))
             return;
@@ -111,7 +108,6 @@ class Middleware implements MiddlewareInterface
             'ipAddress' => get_ip_address(),
             'url'       => (string) $request->getUri(),
             'headers'   => $config->filterHeaders($request->getHeaders()),
-            // 'bodySize'  => $streamAnalyzer->size,
         ]);
 
         $bodyContext = self::BodyContent;
@@ -210,18 +206,14 @@ class Middleware implements MiddlewareInterface
         }
 
         $config = $this->config->logResponse;
+        $path = substr($request->getUri()->getPath(), strlen(get_base_path()));
 
-        if($request->getAttribute(RouteContext::ROUTING_RESULTS, false)) {
-            $route = RouteContext::fromRequest($request)->getRoute();
-            if(!$this->config->logRequest->checkRoute($route) || !$config->checkRoute($route)) {
-                return;
-            }
+        if(!$config->checkPath($path))
+            return;
 
-            $routeConfig = $this->config->getConfigForRoute($route, 'logResponse');
-            if($routeConfig) {
-                $config->override($routeConfig);
-            }
-        }
+        $routeConfig = $this->config->getConfigForPath($path, 'logResponse');
+        if(!is_null($routeConfig))
+            $config->override($routeConfig);
 
         if(!$config->checkStatusCode($response->getStatusCode())) {
             return;
@@ -356,6 +348,7 @@ class Middleware implements MiddlewareInterface
                     $stream->close();
             }
         }
+        else touch($filePath);
 
         return "{$path}/{$fileName}";
     }

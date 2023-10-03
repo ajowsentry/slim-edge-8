@@ -6,9 +6,10 @@ namespace SlimEdge\Factory;
 
 use Slim\App;
 use SlimEdge\Cors;
-use SlimEdge\HttpLog;
 use DI\Bridge\Slim;
 use SlimEdge\Route;
+use SlimEdge\HttpLog;
+use SlimEdge\Middleware;
 use SlimEdge\Support\Paths;
 use SlimEdge\Cors\Preflight;
 use Slim\Exception\HttpException;
@@ -94,10 +95,13 @@ final class AppFactory
         }
 
         $this->app->add(Cors\Middleware::class);
+        $this->app->add(Middleware\RoutingMiddleware::class);
         $this->app->addRoutingMiddleware();
         $this->registerErrorHandler();
         $this->app->add(Cors\Middleware::class);
-        $this->app->add(HttpLog\Middleware::class);
+
+        if($this->config['enableHttpLog'] ?? false)
+            $this->app->add(HttpLog\Middleware::class);
 
         return $this;
     }
