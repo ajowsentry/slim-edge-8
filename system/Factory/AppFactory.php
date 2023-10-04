@@ -95,7 +95,6 @@ final class AppFactory
         }
 
         $this->app->add(Cors\Middleware::class);
-        $this->app->add(Middleware\RoutingMiddleware::class);
         $this->app->addRoutingMiddleware();
         $this->registerErrorHandler();
         $this->app->add(Cors\Middleware::class);

@@ -58,52 +58,65 @@ class FileReader2
      * @param int $rowOffset Row offset
      * @return Generator<int,string,null,void>
      */
-    public function query(string|int $fromDate, $rowOffset = 0): Generator
+    public function query(string|int $fromDate): Generator
     {
         $timestamp = is_int($fromDate) ? $fromDate : get_timestamp($fromDate);
         $indexPath = $this->findIndexFile($timestamp);
+
         if(false === $indexPath)
             return; // Date out of range
 
         $indexFile = fopen($indexPath, 'r');
-        if(false === $indexFile)
-            return;
 
-        fseek($indexFile, 0, SEEK_END);
+        try {
+            if(false === $indexFile)
+                return;
 
-        $left = 0;
-        $right = intdiv(ftell($indexFile), 18);
+            fseek($indexFile, 0, SEEK_END);
 
-        $mid = -1;
-        while($left <= $right) {
-            $mid = intdiv(($left + $right), 2);
+            $left = 0;
+            $right = intdiv(ftell($indexFile), 18);
+
+            $mid = -1;
+            while($left <= $right) {
+                $mid = intdiv(($left + $right), 2);
+                fseek($indexFile, 18 * $mid);
+                $bin = fread($indexFile, 8);
+                if(strlen($bin) < 8)
+                    break;
+
+                [, $midTimestamp] = unpack('P', $bin);
+
+                if($midTimestamp == $timestamp) {
+                    break;
+                }
+                elseif($midTimestamp < $timestamp) {
+                    $left = $mid + 1;
+                }
+                else {
+                    $right = $mid - 1;
+                }
+            }
+
             fseek($indexFile, 18 * $mid);
-            [, $midTimestamp] = unpack('P', fread($indexFile, 8));
+            $metadata = fread($indexFile, 18);
+            if(strlen($metadata) < 18)
+                return;
 
-            if($midTimestamp == $timestamp) {
-                break;
-            }
-            elseif($midTimestamp < $timestamp) {
-                $left = $mid + 1;
-            }
-            else {
-                $right = $mid - 1;
+            /**
+             * @var int $startTs
+             * @var int $page
+             * @var int $offset
+             */
+            extract(unpack('PstartTs/vpage/Poffset', $metadata));
+            $startTs /= 1000;
+            $dateTime = new DateTime("@{$startTs}");
+            foreach($this->iterateJson($dateTime, $page, $offset) as $json) {
+                yield $json;
             }
         }
-
-        fseek($indexFile, 18 * $mid);
-        $metadata = fread($indexFile, 18);
-
-        /**
-         * @var int $startTs
-         * @var int $page
-         * @var int $offset
-         */
-        extract(unpack('PstartTs/vpage/Poffset', $metadata));
-        $startTs /= 1000;
-        $dateTime = new DateTime("@{$startTs}");
-        foreach($this->iterateJson2($dateTime, $page, $offset) as $json) {
-            yield $json;
+        finally {
+            fclose($indexFile);
         }
     }
 
@@ -114,7 +127,7 @@ class FileReader2
      * 
      * @return Generator<int,string,null,void>
      */
-    public function iterateJson2(DateTime $dateTime, int $page = 0, int $offset = 0): Generator
+    public function iterateJson(DateTime $dateTime, int $page = 0, int $offset = 0): Generator
     {
         $dateTime = $dateTime->setTimezone(new DateTimeZone('UTC'));
         $startPeriod = $dateTime->format('Ym');
@@ -144,103 +157,6 @@ class FileReader2
                         $logFile->close();
                 }
             }
-        }
-    }
-
-    /**
-     * @param DateTime $dateTime
-     * @param int $page
-     * @param int $offset
-     * 
-     * @return Generator<int,string,null,void>
-     */
-    public function iterateJson(DateTime $dateTime, int $page = 0, int $offset = 0): Generator
-    {
-        $dateTime = $dateTime->setTimezone(new DateTimeZone('UTC'));
-
-        $startPeriod = $dateTime->format('Ym');
-        $startDate = $dateTime->format('Y-m-d');
-
-        // Find nearest period folder
-        $periodFound = false;
-        $periodIterator = new DirectoryIterator($this->config->path);
-        while(($periodFileInfo = $periodIterator->current())->valid()) {
-            if($periodFileInfo->isDir() && !$periodFileInfo->isDot() && $periodFileInfo->getFilename() == $startPeriod) {
-                $periodFound = true;
-                break;
-            }
-
-            $periodIterator->next();
-        }
-
-        if(!$periodFound) {
-            $page = 0;
-        }
-        
-        $startPage = str_pad_left(strval($page), 4, '0');
-        $pageIterator = new DirectoryIterator($periodFileInfo->getRealPath());
-
-        // Find nearest page file
-        $pageFound = false;
-        while(($pageFileInfo = $pageIterator->current())->valid()) {
-            if($pageFileInfo->isFile() && $pageFileInfo->getExtension() == 'log') {
-                $page = substr($pageFileInfo->getFilename(), -8, 4);
-                if($page == $startPage) {
-                    $pageFound = true;
-                    break;
-                }
-            }
-
-            $pageIterator->next();
-        }
-
-        if(!$pageFound) {
-            $offset = 0;
-        }
-
-        while(($periodFileInfo = $periodIterator->current())->valid()) {
-            // if($periodFileInfo->getFilename() == $startPeriod) {
-            //     break;
-            // }
-
-            $pageIterator = new DirectoryIterator($periodFileInfo->getRealPath());
-            $pageStart = false;
-            while(($pageFileInfo = $pageIterator->current())->valid()) {
-                if(!$pageFileInfo->isFile() || $pageFileInfo->getExtension() !== 'log') {
-                    $pageIterator->next();
-                    continue;
-                }
-
-                if(!$pageStart) {
-                    $currentPage = intval(substr($pageFileInfo->getFilename(), -8, 4));
-                    $currentDate = substr($pageFileInfo->getFilename(), 4, 10);
-                    if($currentDate < $startDate || ($currentDate == $startDate && $currentPage < $page)) {
-                        $pageIterator->next();
-                        continue;
-                    }
-                }
-
-                $pageStart = true;
-                try {
-                    $logFile = create_stream($pageFileInfo->getPath(), 'r');
-                    if($offset > 0) {
-                        $logFile->seek($offset);
-                    }
-
-                    foreach($this->lineIterator($logFile) as $line) {
-                        yield $line;
-                    }
-                }
-                finally {
-                    $offset = 0;
-                    if(isset($logFile))
-                        $logFile->close();
-                }
-
-                $pageIterator->next();
-            }
-
-            $periodIterator->next();
         }
     }
 
@@ -317,15 +233,43 @@ class FileReader2
             $filePath = $indexFiles[$mid];
             $midFile = fopen($filePath, 'r');
             [, $midTimestamp] = unpack('P', fread($midFile, 8));
+            // echo 'midTimestamp: ' . $midTimestamp . PHP_EOL;
+            // echo 'left : ' . $left . PHP_EOL;
+            // echo 'right: ' . $right . PHP_EOL;
+            // echo '------------------------------' . PHP_EOL;
             fclose($midFile);
 
             if($midTimestamp == $timestamp) {
                 return $filePath;
             }
-            elseif($midTimestamp < $timestamp) {
+
+            if($midTimestamp < $timestamp) {
+                if($mid < count($indexFiles) - 1) {
+                    $nextFilePath = $indexFiles[$mid + 1];
+                    $nextFile = fopen($nextFilePath, 'r');
+                    [, $nextTimestamp] = unpack('P', fread($nextFile, 8));
+                    // echo 'nextTimestamp: ' . $nextTimestamp . PHP_EOL;
+                    // echo '------------------------------' . PHP_EOL;
+                    fclose($nextFile);
+                    if($timestamp < $nextTimestamp)
+                        return $nextFilePath;
+                }
+
                 $left = $mid + 1;
             }
-            else {
+
+            elseif($midTimestamp > $timestamp) {
+                if($mid > 0) {
+                    $prevFilePath = $indexFiles[$mid - 1];
+                    $prevFile = fopen($prevFilePath, 'r');
+                    [, $prevTimestamp] = unpack('P', fread($prevFile, 8));
+                    // echo 'prevTimestamp: ' . $prevTimestamp . PHP_EOL;
+                    // echo '------------------------------' . PHP_EOL;
+                    fclose($prevFile);
+                    if($timestamp > $prevTimestamp)
+                        return $prevFilePath;
+                }
+
                 $right = $mid - 1;
             }
         }

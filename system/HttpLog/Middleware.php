@@ -106,7 +106,7 @@ class Middleware implements MiddlewareInterface
         $logData = new LogData('request', [
             'method'    => $request->getMethod(),
             'ipAddress' => get_ip_address(),
-            'url'       => (string) $request->getUri(),
+            'url'       => (string) $request->getUri()->withQuery(''),
             'headers'   => $config->filterHeaders($request->getHeaders()),
         ]);
 

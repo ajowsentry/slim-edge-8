@@ -10,7 +10,7 @@ use SlimEdge\Route\Attributes\Route;
 
 class Controller
 {
-    #[Route\Get("/log/read", 'readLog')]
+    #[Route\Get("/log/read")]
     public function readLog(ServerRequestInterface $request): ResponseInterface
     {
         $formData = DTO::fromRequest($request);
@@ -25,12 +25,18 @@ class Controller
         $response = create_response();
         $response->getBody()->write('[');
         $written = false;
-        foreach($reader->query($timestamp, $offset) as $json) {
-            if($limit-- <= 0)
+        foreach($reader->query($timestamp * 1000) as $json) {
+            if($offset > 0) {
+                $offset--;
+                continue;
+            }
+
+            if($limit-- <= 0) {
                 break;
+            }
             
-            $written = true;
             $response->getBody()->write($json);
+            $written = true;
         }
 
         if($written)
