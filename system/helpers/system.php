@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Slim\App;
+use Slim\Interfaces\RouteParserInterface;
 use SlimEdge\Support\Paths;
 
 if(! function_exists('env_aware_file')) {
@@ -171,5 +172,91 @@ if(! function_exists('delete_dir')) {
         }
 
         return rmdir($path);
+    }
+}
+
+if(! function_exists('dir_size')) {
+
+    function dir_size($path): bool {
+        if(!is_dir($path))
+            return false;
+        
+        if(!str_ends_with($path, '/') && !str_ends_with($path, '\\'))
+            $path .= '/';
+        
+        foreach(glob($path . '*', GLOB_MARK) as $file) {
+            if(is_dir($file)) delete_dir($file);
+            else unlink($file);
+        }
+
+        return rmdir($path);
+    }
+}
+
+if(! function_exists('dir_files')) {
+
+    function dir_files($path): array {
+        $files = [$path];
+        $result = [];
+        while(count($files) > 0) {
+
+            $file = array_shift($files);
+            if(is_dir($file)) {
+                $fileList = scandir(realpath($file));
+                if(false === $fileList)
+                    continue;
+                
+                foreach($fileList as $fileItem) {
+                    if($fileItem == '.' || $fileItem == '..')
+                        continue;
+                    
+                    array_push($files, $file . DIRECTORY_SEPARATOR . $fileItem);
+                }
+            }
+            else {
+                array_push($result, realpath($file));
+            }
+        }
+
+        return $result;
+    }
+}
+
+if(! function_exists('empty_dirs')) {
+
+    function empty_dirs($path): array {
+        $files = [$path];
+        $result = [];
+        while(count($files) > 0) {
+
+            $file = array_shift($files);
+            if(is_dir($file)) {
+                $fileList = scandir(realpath($file));
+                if(false === $fileList)
+                    continue;
+                
+                if(count($fileList) == 2)
+                    array_push($result, $file);
+                
+                foreach($fileList as $fileItem) {
+                    if($fileItem == '.' || $fileItem == '..')
+                        continue;
+                    
+                    if(is_dir($fileItem = $file . DIRECTORY_SEPARATOR . $fileItem))
+                        array_push($files, $fileItem);
+                }
+            }
+        }
+
+        return $result;
+    }
+}
+
+if(! function_exists('url_for')) {
+
+    function url_for(string $routeName, array|null $data = [], array|null $queryParams = []): string {
+        /** @var RouteParserInterface */
+        $routeParser = container(RouteParserInterface::class);
+        return get_base_url() . ltrim($routeParser->urlFor($routeName, $data, $queryParams), '/');
     }
 }

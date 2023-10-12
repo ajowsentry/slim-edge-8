@@ -79,7 +79,15 @@ trait ConfigTrait
 
     public function checkPath(string $path)
     {
-        return is_null($this->ignoreRoutes) || !in_array($path, $this->ignoreRoutes);
+        if(is_null($this->ignoreRoutes))
+            return true;
+        
+        foreach($this->ignoreRoutes as $route) {
+            if($route == $path || (str_ends_with($route, '*') && str_starts_with($path, substr($route, 0, -1))))
+                return false;
+        }
+
+        return true;
     }
 
     /**

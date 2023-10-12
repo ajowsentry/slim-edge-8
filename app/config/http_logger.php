@@ -56,7 +56,7 @@ return [
         /**
          * Ignore logging when the request routes name are in list
          */
-        'ignoreRoutes' => ['/log/read'],
+        'ignoreRoutes' => ['/log/*', '/storage/*'],
     ],
 
     'logResponse' => [
@@ -99,7 +99,7 @@ return [
         /**
          * Ignore logging when the request route name is in specified value
          */
-        'ignoreRoutes' => ['/log/read'],
+        'ignoreRoutes' => ['/log/*', '/storage/*'],
     ],
 
     'logErrors' => true,

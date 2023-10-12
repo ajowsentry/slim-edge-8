@@ -107,7 +107,7 @@ class Middleware implements MiddlewareInterface
             'method'    => $request->getMethod(),
             'ipAddress' => get_ip_address(),
             'url'       => (string) $request->getUri()->withQuery(''),
-            'headers'   => $config->filterHeaders($request->getHeaders()),
+            'headers'   => (object) $config->filterHeaders($request->getHeaders()),
         ]);
 
         $bodyContext = self::BodyContent;

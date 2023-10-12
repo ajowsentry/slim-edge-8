@@ -9,7 +9,9 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Slim\Factory\Psr17\Psr17FactoryProvider;
 use Slim\Factory\ServerRequestCreatorFactory;
 use Psr\Http\Message\ResponseFactoryInterface;
+use Slim\Interfaces\RouteParserInterface;
 use Slim\Interfaces\ServerRequestCreatorInterface;
+use SlimEdge\Kernel;
 
 return [
 
@@ -36,5 +38,9 @@ return [
     CacheInterface::class => DI\factory(function() {
         $config = new Phpfastcache\Config\ConfigurationOption(['path' => Paths::Cache]);
         return new Phpfastcache\Helper\Psr16Adapter('Files', $config);
+    }),
+
+    RouteParserInterface::class => DI\factory(function() {
+        return Kernel::getApp()->getRouteCollector()->getRouteParser();
     }),
 ];
