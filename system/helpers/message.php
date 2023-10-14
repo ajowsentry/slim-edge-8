@@ -49,7 +49,7 @@ if(! function_exists('create_stream')) {
      */
     function create_stream($filename, $mode = 'r+'): StreamInterface
     {
-        if($filename instanceof StreamFactoryInterface) {
+        if($filename instanceof StreamInterface) {
             return $filename;
         }
 
